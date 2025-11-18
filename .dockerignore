@@ -1,0 +1,20 @@
+# Docker Image 빌드 시 무시
+.git/
+.github/
+.gradle/
+build/
+*.md
+.gitignore
+.gitattributes
+.idea/
+logs/
+docs/
+out/
+
+# Docker Image 빌드 시 포함
+!gradle/
+!gradlew
+!gradlew.bat
+!src/
+!build.gradle
+!settings.gradle
