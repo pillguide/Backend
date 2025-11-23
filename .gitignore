@@ -193,6 +193,3 @@ gradle-app.setting
 ### Gradle Patch ###
 # Java heap dump
 *.hprof
-
-# 환경변수
-src/main/resources/.env
