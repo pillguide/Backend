@@ -65,8 +65,12 @@ public class Member extends BaseTimeEntity {
     }
 
     public void updateAdditionalInfo(Gender gender, LocalDate birthDate) {
-        this.gender = gender;
-        this.birthDate = birthDate;
+        if (gender != null) {
+            this.gender = gender;
+        }
+        if (birthDate != null) {
+            this.birthDate = birthDate;
+        }
     }
 
     public void updateRefreshToken(String refreshToken) {

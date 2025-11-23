@@ -12,7 +12,10 @@ public class LoginResponseDTO {
 
     private String accessToken;
     private String refreshToken;
-    
-    //정보가 다 있으면 프론트가 메인화면으로 매핑 시키게 없으면 정보 입력 페이지로
+
+    /**
+     * 사용자 추가 정보(성별, 생년월일) 입력 완료 여부.
+     * true일 경우 메인 화면으로, false일 경우 추가 정보 입력 화면으로 이동합니다.
+     */
     private boolean isProfileComplete;
 }
