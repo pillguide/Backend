@@ -31,8 +31,9 @@ public class Member extends BaseTimeEntity {
     @Column(nullable = false)
     private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = true)
-    private String gender;
+    private Gender gender;
 
     @Column(nullable = true)
     private LocalDate birthDate;
@@ -42,9 +43,6 @@ public class Member extends BaseTimeEntity {
     private Role role;
 
     @Column(nullable = true, length = 2000)
-    private String accessToken;
-
-    @Column(nullable = true, length = 2000)
     private String refreshToken;
 
     @Builder
@@ -52,10 +50,9 @@ public class Member extends BaseTimeEntity {
                   OAuthProvider provider,
                   String oauthId,
                   String name,
-                  String gender,
+                  Gender gender,
                   LocalDate birthDate,
                   Role role,
-                  String accessToken,
                   String refreshToken) {
         this.email = email;
         this.provider = provider;
@@ -64,12 +61,15 @@ public class Member extends BaseTimeEntity {
         this.gender = gender;
         this.birthDate = birthDate;
         this.role = role;
-        this.accessToken = accessToken;
         this.refreshToken = refreshToken;
     }
 
-    public void updateAdditionalInfo(String gender, LocalDate birthDate) {
+    public void updateAdditionalInfo(Gender gender, LocalDate birthDate) {
         this.gender = gender;
         this.birthDate = birthDate;
+    }
+
+    public void updateRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 }

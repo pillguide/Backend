@@ -1,10 +1,13 @@
 package kr.co.pillguide.backend.api.member.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import kr.co.pillguide.backend.api.member.dto.MemberInfoRequestDTO;
+import kr.co.pillguide.backend.api.member.entity.Gender;
 import kr.co.pillguide.backend.api.member.entity.Member;
 import kr.co.pillguide.backend.api.member.entity.OAuthProvider;
 import kr.co.pillguide.backend.api.member.entity.Role;
 import kr.co.pillguide.backend.api.member.repository.MemberRepository;
+import kr.co.pillguide.backend.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +24,7 @@ public class MemberService {
     public void updateInfo(Long memberId, MemberInfoRequestDTO request) {
 
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 회원입니다."));
 
         member.updateAdditionalInfo(request.getGender(), request.getBirthDate());
     }
@@ -31,9 +34,8 @@ public class MemberService {
                                           OAuthProvider provider,
                                           String oauthId,
                                           String name,
-                                          String gender,
+                                          Gender gender,
                                           LocalDate birthDate,
-                                          String accessToken,
                                           String refreshToken) {
 
         Member member = memberRepository.findByOauthIdAndProvider(oauthId, provider)
@@ -49,7 +51,6 @@ public class MemberService {
                             .gender(gender)
                             .birthDate(birthDate)
                             .role(Role.USER)
-                            .accessToken(accessToken)
                             .refreshToken(refreshToken)
                             .build()
             );
