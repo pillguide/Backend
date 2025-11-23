@@ -194,4 +194,5 @@ gradle-app.setting
 # Java heap dump
 *.hprof
 
-
+# 환경변수
+src/main/resources/.env
