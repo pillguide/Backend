@@ -37,7 +37,6 @@ dependencies {
     // Spring Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
-
     // Spring Security
     implementation 'org.springframework.boot:spring-boot-starter-security'
 

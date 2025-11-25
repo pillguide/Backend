@@ -18,8 +18,12 @@ public class BaseException extends RuntimeException {
     }
 
     public BaseException(HttpStatus statusCode, String responseMessage) {
-        super(responseMessage);
+        super();
         this.statusCode = statusCode;
         this.responseMessage = responseMessage;
+    }
+
+    public int getStatusCode() {
+        return this.statusCode.value();
     }
 }

@@ -1,13 +1,11 @@
 package kr.co.pillguide.backend.api.member.service;
 
-import jakarta.persistence.EntityNotFoundException;
 import kr.co.pillguide.backend.api.member.dto.MemberInfoRequestDTO;
 import kr.co.pillguide.backend.api.member.entity.Gender;
 import kr.co.pillguide.backend.api.member.entity.Member;
 import kr.co.pillguide.backend.api.member.entity.OAuthProvider;
 import kr.co.pillguide.backend.api.member.entity.Role;
 import kr.co.pillguide.backend.api.member.repository.MemberRepository;
-import kr.co.pillguide.backend.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
