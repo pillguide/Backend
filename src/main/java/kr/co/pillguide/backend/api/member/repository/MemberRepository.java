@@ -1,7 +1,6 @@
 package kr.co.pillguide.backend.api.member.repository;
 
 import kr.co.pillguide.backend.api.member.entity.Member;
-import kr.co.pillguide.backend.api.member.entity.OAuthProvider;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

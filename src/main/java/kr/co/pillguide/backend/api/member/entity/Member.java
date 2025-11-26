@@ -21,9 +21,8 @@ public class Member extends BaseTimeEntity {
     private String email;
 
     // OAuth2 공급자
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OAuthProvider provider;
+    private String provider;
 
     // OAuth2 공급자 유니크 키
     @Column(nullable = false, unique = true, length = 100)

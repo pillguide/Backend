@@ -26,7 +26,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
 
         OAuth2User oAuth2User = delegate.loadUser(userRequest);
-        var p = OAuth2Attributes.parse(userRequest, oAuth2User);
+        var p = OAuth2Attributes.extract(userRequest, oAuth2User);
 
         Optional<Member> found = memberRepository.findByOauthIdAndProvider(p.oauthId(), p.provider());
         if (found.isEmpty() && p.email() != null) {

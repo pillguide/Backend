@@ -34,7 +34,7 @@ public class SwaggerConfig {
                 .type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")
                 .in(SecurityScheme.In.HEADER);
 
-        SecurityRequirement securityRequirement = new SecurityRequirement().addList(accessTokenHeader);
+        SecurityRequirement securityRequirement = new SecurityRequirement().addList("bearer");
 
         return new OpenAPI()
                 .components(new Components().addSecuritySchemes("bearer", securityScheme))

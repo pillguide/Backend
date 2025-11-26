@@ -77,4 +77,9 @@ public class SecurityMember implements UserDetails, OAuth2User {
     public static SecurityMember from(Member member) {
         return new SecurityMember(member);
     }
+
+    @Override
+    public String getName() {
+        return member.getEmail();
+    }
 }
