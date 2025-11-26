@@ -19,6 +19,7 @@ public enum ErrorStatus {
     BAD_REQUEST_INVALID_IMAGE_SIZE(HttpStatus.BAD_REQUEST, "이미지 파일 크기가 15MB 보다 큽니다."),
     BAD_REQUEST_INVALID_VIDEO_SIZE(HttpStatus.BAD_REQUEST, "동영상 파일 크기가 100MB 보다 큽니다."),
     BAD_REQUEST_NOT_SUPPORTED_DOMAIN(HttpStatus.BAD_REQUEST, "지원하지 않는 도메인입니다."),
+    BAD_REQUEST_CANNOT_RECEIVE_OAUTH2_EMAIL(HttpStatus.BAD_REQUEST, "소셜 로그인에서 이메일 정보를 받을 수 없습니다."),
 
 	/// 401 UNAUTHORIZED
 	UNAUTHORIZED_USER(HttpStatus.UNAUTHORIZED, "인증되지 않은 사용자입니다."),
@@ -38,9 +39,11 @@ public enum ErrorStatus {
     NOT_FOUND_RESOURCE(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
     NOT_FOUND_EMAIL(HttpStatus.NOT_FOUND, "해당 이메일을 찾을 수 없습니다."),
     NOT_FOUND_MEMBER(HttpStatus.NOT_FOUND, "해당 회원을 찾을 수 없습니다."),
+
 	/// 409 CONFLICT
 	CONFLICT_DUPLICATE_RESOURCE(HttpStatus.CONFLICT, "중복된 리소스가 존재합니다."),
     CONFLICT_MEMBER_DEVICE_FCM_TOKEN(HttpStatus.CONFLICT, "이미 다른 사용자가 등록한 FCM 토큰입니다."),
+    CONFLICT_OAUTH2_EMAIL(HttpStatus.CONFLICT, "이미 다른 소셜 계정으로 가입된 이메일입니다."),
 
 	/// 415 UNSUPPORTED MEDIA TYPE
 	UNSUPPORTED_MEDIA_TYPE(HttpStatus.BAD_REQUEST, "지원하지 않는 Content-Type 입니다."),
