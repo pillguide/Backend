@@ -1,4 +1,4 @@
-package kr.co.pillguide.backend.common.config.security.filter;
+package kr.co.pillguide.backend.common.security.filter;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

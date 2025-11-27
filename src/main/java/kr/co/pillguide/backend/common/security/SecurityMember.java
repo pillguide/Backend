@@ -1,4 +1,4 @@
-package kr.co.pillguide.backend.common.config.security;
+package kr.co.pillguide.backend.common.security;
 
 import kr.co.pillguide.backend.api.member.entity.Member;
 import org.springframework.security.core.GrantedAuthority;
@@ -15,9 +15,18 @@ import java.util.Map;
 public class SecurityMember implements UserDetails, OAuth2User {
 
     private final Member member;
+    private Map<String, Object> attributes;
 
+    // 폼 로그인용 생성자 (추후 고려)
     public SecurityMember(Member member) {
         this.member = member;
+        this.attributes = Collections.emptyMap();
+    }
+
+    // OAuth2 로그인용 생성자
+    public SecurityMember(Member member, Map<String, Object> attributes) {
+        this.member = member;
+        this.attributes = attributes;
     }
 
     @Override
@@ -47,7 +56,7 @@ public class SecurityMember implements UserDetails, OAuth2User {
 
     @Override
     public String getPassword() {
-        return "";
+        return null;
     }
 
     @Override
@@ -65,13 +74,14 @@ public class SecurityMember implements UserDetails, OAuth2User {
 
     // --- OAuth2User
     @Override
+    @SuppressWarnings("unchecked")
     public <A> A getAttribute(String name) {
-        return OAuth2User.super.getAttribute(name);
+        return (A) attributes.get(name);
     }
 
     @Override
     public Map<String, Object> getAttributes() {
-        return Map.of();
+        return attributes;
     }
 
     public static SecurityMember from(Member member) {

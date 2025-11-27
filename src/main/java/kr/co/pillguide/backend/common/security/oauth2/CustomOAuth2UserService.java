@@ -1,8 +1,8 @@
-package kr.co.pillguide.backend.common.config.security.oauth2;
+package kr.co.pillguide.backend.common.security.oauth2;
 
 import kr.co.pillguide.backend.api.member.entity.Member;
 import kr.co.pillguide.backend.api.member.repository.MemberRepository;
-import kr.co.pillguide.backend.common.config.security.SecurityMember;
+import kr.co.pillguide.backend.common.security.SecurityMember;
 import kr.co.pillguide.backend.common.response.ErrorStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;

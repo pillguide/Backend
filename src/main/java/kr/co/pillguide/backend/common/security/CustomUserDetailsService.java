@@ -1,4 +1,4 @@
-package kr.co.pillguide.backend.common.config.security;
+package kr.co.pillguide.backend.common.security;
 
 import kr.co.pillguide.backend.api.member.repository.MemberRepository;
 import kr.co.pillguide.backend.common.exception.NotFoundException;

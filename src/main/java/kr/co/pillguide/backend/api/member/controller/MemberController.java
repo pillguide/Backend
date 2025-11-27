@@ -2,9 +2,10 @@ package kr.co.pillguide.backend.api.member.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import kr.co.pillguide.backend.api.member.dto.MemberAdditionalRequestDTO;
 import kr.co.pillguide.backend.api.member.service.MemberService;
-import kr.co.pillguide.backend.common.config.security.SecurityMember;
+import kr.co.pillguide.backend.common.security.SecurityMember;
 import kr.co.pillguide.backend.common.response.ApiResponse;
 import kr.co.pillguide.backend.common.response.SuccessStatus;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,7 @@ public class MemberController {
     @PostMapping("/additional_info")
     public ResponseEntity<ApiResponse<Void>> updateMemberInfo(
             @AuthenticationPrincipal SecurityMember securityMember,
-            @RequestBody MemberAdditionalRequestDTO requestDTO) {
+            @Valid @RequestBody MemberAdditionalRequestDTO requestDTO) {
 
         memberService.updateAdditionalInfo(securityMember.getUsername(), requestDTO);
 

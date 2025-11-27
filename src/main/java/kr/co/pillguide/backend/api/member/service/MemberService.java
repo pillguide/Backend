@@ -30,7 +30,7 @@ public class MemberService {
 
     @Transactional
     public Member getOrCreateSocialMember(String email,
-                                          OAuthProvider provider,
+                                          String provider,
                                           String oauthId,
                                           String name,
                                           Gender gender,
@@ -49,8 +49,7 @@ public class MemberService {
                             .name(name)
                             .gender(gender)
                             .birthDate(birthDate)
-                            .role(Role.USER)
-                            .refreshToken(refreshToken)
+                            .role(Role.ROLE_USER)
                             .build()
             );
         }

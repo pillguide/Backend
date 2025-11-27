@@ -82,7 +82,7 @@ public class Member extends BaseTimeEntity {
 
     public static Member newSocialMember(String name, String email, String provider, String providerId) {
 
-        return new Member(email, provider, providerId, name, null, null, Role.USER);
+        return new Member(email, provider, providerId, name, null, null, Role.ROLE_USER);
     }
 
     public void addRefreshToken(RefreshToken refreshToken) {

@@ -1,10 +1,10 @@
-package kr.co.pillguide.backend.common.config.security;
+package kr.co.pillguide.backend.common.security;
 
-import kr.co.pillguide.backend.common.config.security.filter.FilterExceptionHandler;
-import kr.co.pillguide.backend.common.config.security.filter.JwtAuthenticationProcessingFilter;
-import kr.co.pillguide.backend.common.config.security.oauth2.CustomOAuth2UserService;
-import kr.co.pillguide.backend.common.config.security.oauth2.OAuth2AuthenticationFailureHandler;
-import kr.co.pillguide.backend.common.config.security.oauth2.OAuth2AuthenticationSuccessHandler;
+import kr.co.pillguide.backend.common.security.filter.FilterExceptionHandler;
+import kr.co.pillguide.backend.common.security.filter.JwtAuthenticationProcessingFilter;
+import kr.co.pillguide.backend.common.security.oauth2.CustomOAuth2UserService;
+import kr.co.pillguide.backend.common.security.oauth2.OAuth2AuthenticationFailureHandler;
+import kr.co.pillguide.backend.common.security.oauth2.OAuth2AuthenticationSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

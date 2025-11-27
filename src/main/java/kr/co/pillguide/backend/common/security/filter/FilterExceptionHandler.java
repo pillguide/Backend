@@ -1,4 +1,4 @@
-package kr.co.pillguide.backend.common.config.security.filter;
+package kr.co.pillguide.backend.common.security.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
