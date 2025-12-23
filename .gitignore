@@ -5,10 +5,11 @@ logs
 gradle/
 
 # application 설정 파일 무시
-/src/main/resources/application.yml
+/src/main/resources/application-local.yml
 /src/main/resources/application-oauth2.yml
 /src/main/resources/application-swagger.yml
 /src/main/resources/application-infra.yml
+/src/main/resources/application-prod.yml
 
 # firebase 파일 무시
 *firebase-adminsdk*.json
