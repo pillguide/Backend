@@ -10,6 +10,7 @@ gradle/
 /src/main/resources/application-swagger.yml
 /src/main/resources/application-infra.yml
 /src/main/resources/application-prod.yml
+/src/main/resources/application.yml
 
 # firebase 파일 무시
 *firebase-adminsdk*.json

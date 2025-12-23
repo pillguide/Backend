@@ -27,8 +27,8 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final FilterExceptionHandler filterExceptionHandler;
-    private final OAuth2AuthenticationSuccessHandler oauth2AuthenticationSuccessHandler;
-    private final OAuth2AuthenticationFailureHandler oauth2AuthenticationFailureHandler;
+//    private final OAuth2AuthenticationSuccessHandler oauth2AuthenticationSuccessHandler;
+//    private final OAuth2AuthenticationFailureHandler oauth2AuthenticationFailureHandler;
     private final CustomOAuth2UserService oauth2UserService;
     private final JwtAuthenticationProcessingFilter jwtAuthenticationProcessingFilter;
 
@@ -71,17 +71,20 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
-                                "/api/v1/**"
+                                "/api/v1/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/api/v3/api-docs/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-                .oauth2Login(oauth2 -> oauth2
-                        .authorizationEndpoint(auth -> auth
-                                .baseUri("/api/v1/oauth2/authorize"))
-                        .successHandler(oauth2AuthenticationSuccessHandler)
-                        .failureHandler(oauth2AuthenticationFailureHandler)
-                        .userInfoEndpoint(userInfoEndpointConfig -> userInfoEndpointConfig
-                                .userService(oauth2UserService)))
+//                .oauth2Login(oauth2 -> oauth2
+//                        .authorizationEndpoint(auth -> auth
+//                                .baseUri("/api/v1/oauth2/authorize"))
+//                        .successHandler(oauth2AuthenticationSuccessHandler)
+//                        .failureHandler(oauth2AuthenticationFailureHandler)
+//                        .userInfoEndpoint(userInfoEndpointConfig -> userInfoEndpointConfig
+//                                .userService(oauth2UserService)))
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(filterExceptionHandler)
                         .accessDeniedHandler(filterExceptionHandler)
