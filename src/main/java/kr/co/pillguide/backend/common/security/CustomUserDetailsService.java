@@ -16,9 +16,21 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final MemberRepository memberRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        return memberRepository.findByEmail(email)
+    public UserDetails loadUserByUsername(String memberId) throws UsernameNotFoundException {
+
+        Long id;
+        try {
+            id = Long.valueOf(memberId);
+        } catch (NumberFormatException e) {
+            throw new UsernameNotFoundException("잘못된 사용자 식별자입니다. : " + memberId);
+        }
+
+        return memberRepository.findById(id)
                 .map(SecurityMember::new)
-                .orElseThrow(() -> new NotFoundException(ErrorStatus.NOT_FOUND_USER.getMessage() + " : " + email));
+                .orElseThrow(() ->
+                        new NotFoundException(
+                                ErrorStatus.NOT_FOUND_USER.getMessage() + " : " + memberId
+                        )
+                );
     }
 }

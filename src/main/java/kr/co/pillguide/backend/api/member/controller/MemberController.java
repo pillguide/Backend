@@ -8,13 +8,11 @@ import kr.co.pillguide.backend.api.member.service.MemberService;
 import kr.co.pillguide.backend.common.security.SecurityMember;
 import kr.co.pillguide.backend.common.response.ApiResponse;
 import kr.co.pillguide.backend.common.response.SuccessStatus;
+import kr.co.pillguide.backend.common.security.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Member", description = "Member 관련 API.")
 @RestController
@@ -23,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class MemberController {
 
     private final MemberService memberService;
+    private final JwtService jwtService;
 
     @Operation(
             summary = "소셜 로그인 추가 정보 입력 API",
