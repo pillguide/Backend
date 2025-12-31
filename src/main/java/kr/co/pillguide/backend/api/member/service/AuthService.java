@@ -20,8 +20,32 @@ public class AuthService {
 
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final MemberRepository memberRepository;
 
+    public TokenResponseDTO loginSuccess(Member member) {
+
+        Long memberId = member.getId();
+
+        refreshTokenRepository.deleteByMemberId(memberId);
+
+        // 토큰 생성
+        String accessToken = jwtService.createAccessToken(memberId);
+        String refreshTokenValue = jwtService.createRefreshToken(memberId);
+
+        // refresh token 저장
+        RefreshToken refreshToken = RefreshToken.builder()
+                .token(refreshTokenValue)
+                .member(member)
+                .expiresAt(LocalDateTime.now().plusDays(60))
+                .build();
+
+        refreshTokenRepository.save(refreshToken);
+
+        return new TokenResponseDTO(accessToken, refreshTokenValue);
+    }
+
+    /**
+     * Refresh Token 재발급
+     */
     public TokenResponseDTO reissue(String refreshTokenValue) {
 
         // 1️⃣ JWT 자체 검증
@@ -29,39 +53,35 @@ public class AuthService {
             throw new UnauthorizedException("유효하지 않은 Refresh Token입니다.");
         }
 
-        // 2️⃣ 토큰에서 memberId 추출
-        Long memberId = jwtService.extractMemberId(refreshTokenValue);
-
-        // 3️⃣ DB에 저장된 Refresh Token 조회
-        RefreshToken refreshToken = refreshTokenRepository.findByToken(refreshTokenValue)
+        // 2️⃣ DB 조회
+        RefreshToken refreshToken = refreshTokenRepository
+                .findByToken(refreshTokenValue)
                 .orElseThrow(() ->
                         new UnauthorizedException("존재하지 않는 Refresh Token입니다.")
                 );
 
-        // 4️⃣ 만료 여부(DB 기준)
+        // 3️⃣ 만료 검증 (DB 기준)
         if (refreshToken.isExpired()) {
             refreshTokenRepository.delete(refreshToken);
             throw new UnauthorizedException("만료된 Refresh Token입니다.");
         }
 
-        // 5️⃣ 사용자 일치 검증
-        if (!refreshToken.getMember().getId().equals(memberId)) {
-            throw new UnauthorizedException("Refresh Token 정보가 일치하지 않습니다.");
-        }
-
         Member member = refreshToken.getMember();
+        Long memberId = member.getId();
 
-        // 6️⃣ 새 토큰 생성
+        // 4️⃣ 새 토큰 발급
         String newAccessToken = jwtService.createAccessToken(memberId);
-        String newRefreshToken = jwtService.createRefreshToken(memberId);
+        String newRefreshTokenValue = jwtService.createRefreshToken(memberId);
 
-        // 7️⃣ Refresh Token 로테이션
+        // 5️⃣ Refresh Token rotation
         refreshToken.updateToken(
-                newRefreshToken,
+                newRefreshTokenValue,
                 LocalDateTime.now().plusDays(60)
         );
 
-        return new TokenResponseDTO(newAccessToken, newRefreshToken);
+        return new TokenResponseDTO(
+                newAccessToken,
+                newRefreshTokenValue
+        );
     }
 }
-

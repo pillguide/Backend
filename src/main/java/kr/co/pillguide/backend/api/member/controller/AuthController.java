@@ -1,5 +1,6 @@
 package kr.co.pillguide.backend.api.member.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import kr.co.pillguide.backend.api.member.dto.TokenResponseDTO;
 import kr.co.pillguide.backend.api.member.service.AuthService;
 import kr.co.pillguide.backend.common.response.ApiResponse;
@@ -18,6 +19,9 @@ public class AuthController {
 
     private final AuthService authService;
 
+    @Operation(
+            summary = "리프레시 토큰 재발급 API"
+    )
     @PostMapping("/reissue")
     public ResponseEntity<ApiResponse<TokenResponseDTO>> reissue(
             @RequestHeader("X-Refresh-Token") String refreshToken
