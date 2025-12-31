@@ -1,10 +1,10 @@
 package kr.co.pillguide.backend.common.security;
 
+import kr.co.pillguide.backend.common.oauth2.OAuth2AuthenticationFailureHandler;
+import kr.co.pillguide.backend.common.oauth2.OAuth2AuthenticationSuccessHandler;
 import kr.co.pillguide.backend.common.security.filter.FilterExceptionHandler;
 import kr.co.pillguide.backend.common.security.filter.JwtAuthenticationProcessingFilter;
-import kr.co.pillguide.backend.common.security.oauth2.CustomOAuth2UserService;
-import kr.co.pillguide.backend.common.security.oauth2.OAuth2AuthenticationFailureHandler;
-import kr.co.pillguide.backend.common.security.oauth2.OAuth2AuthenticationSuccessHandler;
+import kr.co.pillguide.backend.common.oauth2.CustomOAuth2UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,8 +27,8 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final FilterExceptionHandler filterExceptionHandler;
-//    private final OAuth2AuthenticationSuccessHandler oauth2AuthenticationSuccessHandler;
-//    private final OAuth2AuthenticationFailureHandler oauth2AuthenticationFailureHandler;
+    private final OAuth2AuthenticationSuccessHandler oauth2AuthenticationSuccessHandler;
+    private final OAuth2AuthenticationFailureHandler oauth2AuthenticationFailureHandler;
     private final CustomOAuth2UserService oauth2UserService;
     private final JwtAuthenticationProcessingFilter jwtAuthenticationProcessingFilter;
 
@@ -78,13 +78,13 @@ public class SecurityConfig {
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-//                .oauth2Login(oauth2 -> oauth2
-//                        .authorizationEndpoint(auth -> auth
-//                                .baseUri("/api/v1/oauth2/authorize"))
-//                        .successHandler(oauth2AuthenticationSuccessHandler)
-//                        .failureHandler(oauth2AuthenticationFailureHandler)
-//                        .userInfoEndpoint(userInfoEndpointConfig -> userInfoEndpointConfig
-//                                .userService(oauth2UserService)))
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(auth -> auth
+                                .baseUri("/api/v1/oauth2/authorize"))
+                        .successHandler(oauth2AuthenticationSuccessHandler)
+                        .failureHandler(oauth2AuthenticationFailureHandler)
+                        .userInfoEndpoint(userInfoEndpointConfig -> userInfoEndpointConfig
+                                .userService(oauth2UserService)))
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(filterExceptionHandler)
                         .accessDeniedHandler(filterExceptionHandler)

@@ -1,4 +1,4 @@
-package kr.co.pillguide.backend.common.security.oauth2;
+package kr.co.pillguide.backend.common.oauth2;
 
 import kr.co.pillguide.backend.api.member.entity.Member;
 import kr.co.pillguide.backend.api.member.repository.MemberRepository;
