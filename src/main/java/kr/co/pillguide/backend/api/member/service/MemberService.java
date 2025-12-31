@@ -20,9 +20,9 @@ public class MemberService {
     private final MemberRepository memberRepository;
 
     @Transactional
-    public void updateAdditionalInfo(String memberEmail, MemberAdditionalRequestDTO requestDTO) {
+    public void updateAdditionalInfo(Long memberId, MemberAdditionalRequestDTO requestDTO) {
 
-        Member member = memberRepository.findByEmail(memberEmail)
+        Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new NotFoundException(ErrorStatus.NOT_FOUND_USER.getMessage()));
 
         member.updateAdditionalInfo(requestDTO.gender(), requestDTO.birthDate());

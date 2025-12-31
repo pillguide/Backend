@@ -96,4 +96,7 @@ public class Member extends BaseTimeEntity {
     public void clearAllRefreshTokens() {
         this.refreshTokens.clear();
     }
+    public boolean isProfileCompleted(){
+        return gender != null && birthDate != null;
+    }
 }

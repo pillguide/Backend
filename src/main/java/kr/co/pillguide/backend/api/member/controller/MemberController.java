@@ -33,7 +33,7 @@ public class MemberController {
             @AuthenticationPrincipal SecurityMember securityMember,
             @Valid @RequestBody MemberAdditionalRequestDTO requestDTO) {
 
-        memberService.updateAdditionalInfo(securityMember.getUsername(), requestDTO);
+        memberService.updateAdditionalInfo(securityMember.getMemberId(), requestDTO);
 
         return ApiResponse.successOnly(SuccessStatus.MEMBER_ADDITIONAL_INFO_POST_SUCCESS);
     }
