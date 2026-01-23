@@ -23,37 +23,19 @@ public class MemberService {
     public void updateAdditionalInfo(Long memberId, MemberAdditionalRequestDTO requestDTO) {
 
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new NotFoundException(ErrorStatus.NOT_FOUND_USER.getMessage()));
+                .orElseThrow(() -> new NotFoundException(ErrorStatus.NOT_FOUND_USER.getMessage())
+                );
 
-        member.updateAdditionalInfo(requestDTO.gender(), requestDTO.birthDate());
-    }
-
-    @Transactional
-    public Member getOrCreateSocialMember(String email,
-                                          String provider,
-                                          String oauthId,
-                                          String name,
-                                          Gender gender,
-                                          LocalDate birthDate,
-                                          String refreshToken) {
-
-        Member member = memberRepository.findByOauthIdAndProvider(oauthId, provider)
-                .orElse(null);
-
-        if (member == null) {
-            return memberRepository.save(
-                    Member.builder()
-                            .email(email)
-                            .provider(provider)
-                            .oauthId(oauthId)
-                            .name(name)
-                            .gender(gender)
-                            .birthDate(birthDate)
-                            .role(Role.ROLE_USER)
-                            .build()
-            );
+        // 이메일 없는 사용자 처리 (카카오)
+        if (member.getEmail() == null && requestDTO.email() == null) {
+            throw new IllegalArgumentException("이메일 입력이 필요합니다.");
         }
 
-        return member;
+        if (member.getEmail() == null) {
+            member.updateEmail(requestDTO.email());
+        }
+
+        member.updateAdditionalInfo(requestDTO.gender(), requestDTO.birthDate());
+
     }
 }

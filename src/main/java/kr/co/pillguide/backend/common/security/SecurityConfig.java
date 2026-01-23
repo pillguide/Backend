@@ -15,6 +15,7 @@ import org.springframework.security.config.annotation.web.configurers.HeadersCon
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -71,6 +72,8 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
+                                "/api/v1/oauth2/**",
+                                "/login/oauth2/**",
                                 "/api/v1/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -78,6 +81,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
+                // ===== OAuth2 로그인 =====
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(auth -> auth
                                 .baseUri("/api/v1/oauth2/authorize"))
@@ -90,7 +94,7 @@ public class SecurityConfig {
                         .accessDeniedHandler(filterExceptionHandler)
                 );
 
-        http.addFilterBefore(jwtAuthenticationProcessingFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(jwtAuthenticationProcessingFilter, OAuth2LoginAuthenticationFilter.class);
 
         return http.build();
     }

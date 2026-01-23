@@ -17,16 +17,21 @@ public class SecurityMember implements UserDetails, OAuth2User {
     private final Member member;
     private Map<String, Object> attributes;
 
-    // 폼 로그인용 생성자 (추후 고려)
     public SecurityMember(Member member) {
         this.member = member;
         this.attributes = Collections.emptyMap();
     }
 
-    // OAuth2 로그인용 생성자
-    public SecurityMember(Member member, Map<String, Object> attributes) {
+    private SecurityMember(Member member, Map<String, Object> attributes) {
         this.member = member;
         this.attributes = attributes;
+    }
+
+    public static SecurityMember of(Member member, String providerId) {
+        return new SecurityMember(
+                member,
+                Map.of("id", providerId)
+        );
     }
 
     @Override
@@ -61,7 +66,7 @@ public class SecurityMember implements UserDetails, OAuth2User {
 
     @Override
     public String getUsername() {
-        return member.getEmail();
+        return member.getId().toString();
     }
 
     public Member getMember() {
@@ -84,12 +89,8 @@ public class SecurityMember implements UserDetails, OAuth2User {
         return attributes;
     }
 
-    public static SecurityMember from(Member member) {
-        return new SecurityMember(member);
-    }
-
     @Override
     public String getName() {
-        return member.getEmail();
+        return String.valueOf(member.getId());
     }
 }

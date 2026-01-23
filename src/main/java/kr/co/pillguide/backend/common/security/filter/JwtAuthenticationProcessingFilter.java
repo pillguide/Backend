@@ -36,6 +36,15 @@ public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+
+        return uri.startsWith("/api/v1/oauth2")
+                || uri.startsWith("/login/oauth2")
+                || uri.startsWith("/oauth2");
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain)
@@ -70,4 +79,5 @@ public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
+
 }

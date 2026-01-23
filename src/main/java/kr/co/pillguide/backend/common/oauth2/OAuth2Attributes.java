@@ -45,10 +45,10 @@ public final class OAuth2Attributes {
             case "kakao" -> {
                 String id = String.valueOf(a.get("id"));
                 Map<String, Object> account = (Map<String, Object>) a.get("kakao_account");
-                String email = account == null ? null : (String) account.get("email");
+//                String email = account == null ? null : (String) account.get("email");
                 Map<String, Object> profile = account == null ? null : (Map<String, Object>) account.get("profile");
                 String name = profile == null ? "" : (String) profile.getOrDefault("nickname", "");
-                yield new UserProfile("kakao", id, email, name, a, "id");
+                yield new UserProfile("kakao", id, null, name, a, "id");
             }
             default -> new UserProfile(registrationId, null, null, null, a, "id");
         };

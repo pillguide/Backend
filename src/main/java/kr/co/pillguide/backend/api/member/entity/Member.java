@@ -21,7 +21,7 @@ public class Member extends BaseTimeEntity {
     private Long id;
 
     // 이메일
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = true,length = 100)
     private String email;
 
     // OAuth2 공급자
@@ -97,6 +97,9 @@ public class Member extends BaseTimeEntity {
         this.refreshTokens.clear();
     }
     public boolean isProfileCompleted(){
-        return gender != null && birthDate != null;
+        return email != null && gender != null && birthDate != null;
+    }
+    public void updateEmail(String email) {
+        this.email = email;
     }
 }

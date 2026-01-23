@@ -10,8 +10,12 @@ import java.time.LocalDate;
 @Schema(description = "소셜 로그인 후 추가 정보 입력 요청 DTO")
 public record MemberAdditionalRequestDTO(
 
+        @Schema(description = "이메일 (카카오 로그인 시 필수)")
+        String email,
+
         @NotNull(message = "성별은 필수입니다.")
         Gender gender,
+
         @NotNull(message = "생년월일은 필수입니다.")
         @DateTimeFormat
         LocalDate birthDate
