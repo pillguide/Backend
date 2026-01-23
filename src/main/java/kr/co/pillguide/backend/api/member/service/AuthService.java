@@ -8,8 +8,10 @@ import kr.co.pillguide.backend.api.member.repository.RefreshTokenRepository;
 import kr.co.pillguide.backend.common.exception.UnauthorizedException;
 import kr.co.pillguide.backend.common.security.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.time.LocalDateTime;
 
@@ -21,6 +23,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
 
+    //나중에 혹시 일반 로그인 추가하게 되면 사용
     public TokenResponseDTO loginSuccess(Member member) {
 
         Long memberId = member.getId();
@@ -83,5 +86,10 @@ public class AuthService {
                 newAccessToken,
                 newRefreshTokenValue
         );
+    }
+
+    @Transactional
+    public void logout(String refreshToken) {
+        refreshTokenRepository.deleteByToken(refreshToken);
     }
 }

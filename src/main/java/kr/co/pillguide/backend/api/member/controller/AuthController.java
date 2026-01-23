@@ -32,5 +32,14 @@ public class AuthController {
                 response
         );
     }
+
+    @Operation(summary = "로그아웃")
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @RequestHeader("X-Refresh-Token") String refreshToken
+    ) {
+        authService.logout(refreshToken);
+        return ResponseEntity.ok().build();
+    }
 }
 
