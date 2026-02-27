@@ -1,0 +1,24 @@
+jar {
+    enabled = false
+}
+
+bootJar {
+    enabled = true
+}
+
+dependencies {
+    // Spring Web
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // Spring Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // Spring Actuator
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // Spring Configuration Processor
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    // Spring Devtools
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+}
