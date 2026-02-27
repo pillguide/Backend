@@ -26,17 +26,15 @@ apply from: 'gradle/util.gradle'
 apply from: 'gradle/security.gradle'
 
 
-tasks.register('copyConfig', Copy) {
-    from 'config/src/main/resources'
-    into 'src/main/resources'
-    include 'application*.yml'
+sourceSets {
+    main {
+        resources {
+            srcDirs "src/main/resources"
+            srcDirs "config/src/main/resources"
+        }
+    }
 }
 
-processResources.dependsOn copyConfig
-
-clean {
-    delete fileTree('src/main/resources') {
-        include 'application.yml'
-        include 'application-production.yml'
-    }
+processResources {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
