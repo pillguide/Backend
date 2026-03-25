@@ -12,7 +12,7 @@ public class DrugApiTestController {
 
     private final DrugApiClient drugApiClient;
 
-    @GetMapping("/test/drugs")
+    @GetMapping("/api/v1//test/drugs")
     public String getDrugByItemSeq(@RequestParam String itemSeq) {
         return drugApiClient.getDrugByItemSeq(itemSeq);
     }
