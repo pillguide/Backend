@@ -27,7 +27,7 @@ public class Drug {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    @OneToOne(mappedBy = "drug", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "drug", cascade = CascadeType.ALL, orphanRemoval = true)
     private DrugInfo drugInfo;
 
     public Drug(String name, String code, String imageUrl) {
