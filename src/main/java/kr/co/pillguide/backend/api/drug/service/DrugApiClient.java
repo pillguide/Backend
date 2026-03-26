@@ -29,8 +29,6 @@ public class DrugApiClient {
                 .build()
                 .toUri();
 
-        System.out.println("request uri = " + uri);
-
         ResponseEntity<String> response = restTemplate.getForEntity(uri, String.class);
         return response.getBody();
     }
