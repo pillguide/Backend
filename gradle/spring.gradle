@@ -14,6 +14,9 @@ dependencies {
     // Spring Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
+    // Spring Actuator
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
     // [DEV] Spring Devtools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 }
