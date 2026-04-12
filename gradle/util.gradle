@@ -1,0 +1,15 @@
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+dependencies {
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // AWS SDK for S3 (BOM 지정)
+    implementation platform('software.amazon.awssdk:bom:2.41.34')
+    implementation 'software.amazon.awssdk:s3'
+}
