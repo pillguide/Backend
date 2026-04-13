@@ -4,7 +4,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "drug.api")
 public record DrugApiProperties(
-        String serviceKey,
-        String baseUrl
+        String serviceKey
 ) {
 }

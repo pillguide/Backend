@@ -1,6 +1,5 @@
 package kr.co.pillguide.backend.api.drug.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.co.pillguide.backend.api.drug.dto.DrugApiResponseDto;
 import kr.co.pillguide.backend.api.drug.dto.DrugItemDto;
 import kr.co.pillguide.backend.api.drug.entity.Drug;
@@ -18,10 +17,9 @@ public class DrugService {
 
     private final DrugRepository drugRepository;
     private final DrugApiClient drugApiClient;
-    private final ObjectMapper objectMapper;
 
     @Transactional
-    public void saveDrugByItemSeq(String itemSeq) throws Exception {
+    public void saveDrugByItemSeq(String itemSeq) {
 
         // 1. 중복 체크
         if (drugRepository.findByCode(itemSeq).isPresent()) {
@@ -29,14 +27,19 @@ public class DrugService {
         }
 
         // 2. API 호출
-        String response = drugApiClient.getDrugByItemSeq(itemSeq);
+        DrugApiResponseDto dto = drugApiClient.getDrugByItemSeq(itemSeq);
 
-        // 2. JSON → DTO 변환
-        DrugApiResponseDto dto =
-                objectMapper.readValue(response, DrugApiResponseDto.class);
+        // API 성공 체크
+        if (dto == null || dto.getHeader() == null || !"00".equals(dto.getHeader().getResultCode())) {
+            throw new RuntimeException("API 호출 실패: " +
+                    (dto != null && dto.getHeader() != null ? dto.getHeader().getResultMsg() : "응답 없음"));
+        }
 
-        // API 응답 구조가 비어있거나 items이 없을 경우 처리
-        if (dto.getBody() == null || dto.getBody().getItems() == null || dto.getBody().getItems().isEmpty()) {
+        // 데이터 체크
+        if (dto.getBody() == null ||
+                dto.getBody().getItems() == null ||
+                dto.getBody().getItems().isEmpty()) {
+
             throw new NotFoundException("해당 코드(" + itemSeq + ")로 조회된 약 정보가 없습니다.");
         }
 

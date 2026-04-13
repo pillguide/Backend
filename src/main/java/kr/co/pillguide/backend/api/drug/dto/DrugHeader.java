@@ -5,7 +5,8 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class DrugApiResponseDto {
-    private DrugHeader header;
-    private DrugBody body;
+public class DrugHeader {
+
+    private String resultCode;
+    private String resultMsg;
 }

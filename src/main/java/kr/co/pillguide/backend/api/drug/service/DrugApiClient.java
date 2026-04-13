@@ -1,35 +1,35 @@
 package kr.co.pillguide.backend.api.drug.service;
 
 import kr.co.pillguide.backend.api.drug.config.DrugApiProperties;
+import kr.co.pillguide.backend.api.drug.dto.DrugApiResponseDto;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
-
-import java.net.URI;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
 @RequiredArgsConstructor
 public class DrugApiClient {
 
-    private final RestTemplate restTemplate;
+    @Qualifier("drugWebClient")
+    private final WebClient webClient;
+
     private final DrugApiProperties drugApiProperties;
 
-    public String getDrugByItemSeq(String itemSeq) {
-        URI uri = UriComponentsBuilder
-                .fromHttpUrl(drugApiProperties.baseUrl())
-                .path("/getDrbEasyDrugList")
-                .queryParam("ServiceKey", drugApiProperties.serviceKey())
-                .queryParam("pageNo", 1)
-                .queryParam("numOfRows", 10)
-                .queryParam("itemSeq", itemSeq)
-                .queryParam("type", "json")
-                .encode()
-                .build()
-                .toUri();
+    public DrugApiResponseDto getDrugByItemSeq(String itemSeq) {
 
-        ResponseEntity<String> response = restTemplate.getForEntity(uri, String.class);
-        return response.getBody();
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/getDrbEasyDrugList")
+                        .queryParam("ServiceKey", drugApiProperties.serviceKey())
+                        .queryParam("pageNo", 1)
+                        .queryParam("numOfRows", 10)
+                        .queryParam("itemSeq", itemSeq)
+                        .queryParam("type", "json")
+                        .build()
+                )
+                .retrieve()
+                .bodyToMono(DrugApiResponseDto.class)
+                .block();
     }
 }

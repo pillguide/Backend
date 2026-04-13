@@ -30,6 +30,7 @@ public enum SuccessStatus {
     MEMBER_SIGNUP_SUCCESS(HttpStatus.CREATED, "회원가입 성공"),
     IMAGE_UPLOAD_CREATE_SUCCESS(HttpStatus.CREATED, "이미지 업로드 성공"),
     MEMBER_ADDITIONAL_INFO_POST_SUCCESS(HttpStatus.CREATED, "추가 정보 입력 성공"),
+    DRUG_CREATE_SUCCESS(HttpStatus.CREATED, "약 정보 등록 성공"),
     
     /// 204 NO CONTENT
     SCHEDULE_DELETE_SUCCESS(HttpStatus.NO_CONTENT,"캘린더 일정 삭제 성공"),
