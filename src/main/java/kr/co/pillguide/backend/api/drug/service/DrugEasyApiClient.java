@@ -1,27 +1,28 @@
 package kr.co.pillguide.backend.api.drug.service;
 
-import kr.co.pillguide.backend.api.drug.config.DrugApiProperties;
+import kr.co.pillguide.backend.api.drug.config.DrugEasyProperties;
 import kr.co.pillguide.backend.api.drug.dto.DrugApiResponseDto;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
-@RequiredArgsConstructor
-public class DrugApiClient {
+public class DrugEasyApiClient {
 
-    @Qualifier("drugWebClient")
     private final WebClient webClient;
+    private final DrugEasyProperties drugEasyProperties;
 
-    private final DrugApiProperties drugApiProperties;
-
+    public DrugEasyApiClient(@Qualifier("easydrugWebClient") WebClient webClient,
+                             DrugEasyProperties drugEasyProperties) {
+        this.webClient = webClient;
+        this.drugEasyProperties = drugEasyProperties;
+    }
     public DrugApiResponseDto getDrugByItemSeq(String itemSeq) {
 
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/getDrbEasyDrugList")
-                        .queryParam("ServiceKey", drugApiProperties.serviceKey())
+                        .queryParam("ServiceKey", drugEasyProperties.serviceKey())
                         .queryParam("pageNo", 1)
                         .queryParam("numOfRows", 10)
                         .queryParam("itemSeq", itemSeq)

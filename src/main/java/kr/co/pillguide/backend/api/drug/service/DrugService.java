@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DrugService {
 
     private final DrugRepository drugRepository;
-    private final DrugApiClient drugApiClient;
+    private final DrugEasyApiClient drugEasyApiClient;
 
     @Transactional
     public void saveDrugByItemSeq(String itemSeq) {
@@ -27,7 +27,7 @@ public class DrugService {
         }
 
         // 2. API 호출
-        DrugApiResponseDto dto = drugApiClient.getDrugByItemSeq(itemSeq);
+        DrugApiResponseDto dto = drugEasyApiClient.getDrugByItemSeq(itemSeq);
 
         // API 성공 체크
         if (dto == null || dto.getHeader() == null || !"00".equals(dto.getHeader().getResultCode())) {

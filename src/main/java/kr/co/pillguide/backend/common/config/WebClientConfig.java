@@ -9,7 +9,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class WebClientConfig {
 
     @Bean
-    public WebClient drugWebClient(@Value("${drug.api.base-url}") String baseUrl) {
+    public WebClient easydrugWebClient(@Value("${drug.easy.base-url}") String baseUrl) {
         return WebClient.builder()
                 .baseUrl(baseUrl)
                 .codecs(configurer ->

@@ -4,6 +4,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@EnableConfigurationProperties(DrugApiProperties.class)
+@EnableConfigurationProperties(value = {
+        DrugEasyProperties.class
+})
 public class DrugApiConfig {
 }
