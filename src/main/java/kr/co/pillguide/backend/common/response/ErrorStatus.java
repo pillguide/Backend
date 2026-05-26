@@ -39,6 +39,7 @@ public enum ErrorStatus {
     NOT_FOUND_RESOURCE(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
     NOT_FOUND_EMAIL(HttpStatus.NOT_FOUND, "해당 이메일을 찾을 수 없습니다."),
     NOT_FOUND_MEMBER(HttpStatus.NOT_FOUND, "해당 회원을 찾을 수 없습니다."),
+	NOT_FOUND_DRUG(HttpStatus.NOT_FOUND, "해당 약을 찾을 수 없습니다."),
 
 	/// 409 CONFLICT
 	CONFLICT_DUPLICATE_RESOURCE(HttpStatus.CONFLICT, "중복된 리소스가 존재합니다."),
