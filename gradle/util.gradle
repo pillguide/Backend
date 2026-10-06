@@ -12,4 +12,7 @@ dependencies {
     // AWS SDK for S3 (BOM 지정)
     implementation platform('software.amazon.awssdk:bom:2.41.34')
     implementation 'software.amazon.awssdk:s3'
+
+    //firebase
+    implementation 'com.google.firebase:firebase-admin:7.1.1'
 }
