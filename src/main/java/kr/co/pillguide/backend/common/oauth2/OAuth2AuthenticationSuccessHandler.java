@@ -11,6 +11,7 @@ import kr.co.pillguide.backend.common.security.SecurityMember;
 import kr.co.pillguide.backend.common.security.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -28,8 +29,8 @@ public class OAuth2AuthenticationSuccessHandler
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
 
-    private static final String FRONT_CALLBACK_URL =
-            "http://localhost:3000/oauth/callback";
+    @Value("${app.oauth2.frontend-success-url:http://localhost:3000/oauth/callback}")
+    private String frontendSuccessUrl;
 
     @Override
     public void onAuthenticationSuccess(
@@ -63,7 +64,7 @@ public class OAuth2AuthenticationSuccessHandler
         boolean profileCompleted = member.isProfileCompleted();
 
         String redirectUrl = UriComponentsBuilder
-                .fromUriString(FRONT_CALLBACK_URL)
+                .fromUriString(frontendSuccessUrl)
                 .queryParam("accessToken", accessToken)
                 .queryParam("refreshToken", refreshTokenValue)
                 .queryParam("profileCompleted", profileCompleted)
