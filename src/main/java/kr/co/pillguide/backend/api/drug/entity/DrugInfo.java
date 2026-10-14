@@ -20,16 +20,16 @@ public class DrugInfo {
     @JoinColumn(name = "drug_id", nullable = false)
     private Drug drug;
 
-    @Lob
+    @Column(columnDefinition = "text")
     private String dosageMethod; //복용방법
 
-    @Lob
+    @Column(columnDefinition = "text")
     private String storageMethod; //보관방법
 
-    @Lob
+    @Column(columnDefinition = "text")
     private String sideEffects; //부작용
 
-    @Lob
+    @Column(columnDefinition = "text")
     private String effect;
 
     private LocalDateTime createdAt;
