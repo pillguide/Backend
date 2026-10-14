@@ -6,6 +6,7 @@ import kr.co.pillguide.backend.common.security.filter.FilterExceptionHandler;
 import kr.co.pillguide.backend.common.security.filter.JwtAuthenticationProcessingFilter;
 import kr.co.pillguide.backend.common.oauth2.CustomOAuth2UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -21,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -32,6 +34,12 @@ public class SecurityConfig {
     private final OAuth2AuthenticationFailureHandler oauth2AuthenticationFailureHandler;
     private final CustomOAuth2UserService oauth2UserService;
     private final JwtAuthenticationProcessingFilter jwtAuthenticationProcessingFilter;
+
+    @Value("${app.cors.allowed-origins:http://localhost:3000}")
+    private List<String> allowedOrigins;
+
+    @Value("${app.cors.allowed-origin-patterns:}")
+    private List<String> allowedOriginPatterns;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -46,9 +54,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOrigins(Arrays.asList(
-                            "http://localhost:3000"
-                    ));
+                    config.setAllowedOrigins(allowedOrigins);
+                    config.setAllowedOriginPatterns(allowedOriginPatterns);
                     config.setAllowedMethods(Arrays.asList(
                             "GET", "POST", "PUT", "DELETE", "OPTIONS"
                     ));
