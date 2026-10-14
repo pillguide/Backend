@@ -1,10 +1,10 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '4.0.2'
+	id 'org.springframework.boot' version '4.0.3'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
 
-group = 'site.pillguide'
+group = 'kr.co.pillguide'
 version = '0.0.1-SNAPSHOT'
 description = 'Backend for capstone project'
 
@@ -24,7 +24,6 @@ apply from: 'gradle/docs.gradle'
 apply from: 'gradle/test.gradle'
 apply from: 'gradle/util.gradle'
 apply from: 'gradle/security.gradle'
-
 
 sourceSets {
     main {

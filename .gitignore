@@ -4,8 +4,9 @@ logs
 .gradle/
 
 # application 설정 파일 무시
-/src/main/resources/application.yml
 /src/main/resources/application-*.yml
+/src/main/resources/application.yml
+
 # firebase 파일 무시
 *firebase-adminsdk*.json
 
@@ -134,8 +135,6 @@ fabric.properties
 *.tar.gz
 *.rar
 
-!gradle/wrapper/gradle-wrapper.jar
-
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
@@ -192,5 +191,4 @@ gradle-app.setting
 ### Gradle Patch ###
 # Java heap dump
 *.hprof
-
 
