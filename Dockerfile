@@ -1,36 +1,13 @@
-# --- Build Stage ---
-# JDK 21 사용
-FROM eclipse-temurin:21-jdk-jammy AS build
-
-# 컨테이너 내 작업 디렉토리 설정
+# Build Java bytecode on the runner's native architecture.
+FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk AS builder
 WORKDIR /app
+COPY . .
+RUN chmod +x gradlew && ./gradlew bootJar --no-daemon
 
-# Gradle Wrapper 복사
-COPY gradlew ./
-COPY ../../../../../git/pillguide-backend/gradle ./gradle
-RUN chmod +x ./gradlew
-
-# 의존성 캐싱
-COPY build.gradle settings.gradle ./
-RUN ./gradlew dependencies --no-daemon || true
-
-# 소스 복사
-COPY src ./src
-RUN ./gradlew build --no-daemon -x test
-
-
-# --- Runtime Stage ---
-# 경량 Java 21 사용
-FROM eclipse-temurin:21-jre-alpine AS runtime
-
-# 컨테이너 내 작업 디렉토리 설정
+# Jammy supports the EC2 Graviton ARM64 target.
+FROM eclipse-temurin:21-jre-jammy AS runtime
 WORKDIR /app
-
-# 빌드 결과 복사
-COPY --from=build /app/build/libs/*.jar app.jar
-
-# 컨테이너 8080 포트 사용 (바인딩X)
+COPY --from=builder /app/build/libs/*.jar app.jar
+ENV TZ=Asia/Seoul
 EXPOSE 8080
-
-# 컨테이너 실행
 ENTRYPOINT ["java", "-jar", "app.jar"]
