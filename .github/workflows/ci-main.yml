@@ -52,6 +52,7 @@ jobs:
       - name: Validate deployment configuration
         run: |
           python3 -m pip install PyYAML==6.0.3
+          python3 -B -m unittest discover -s scripts/tests -v
           python3 scripts/validate_deployment.py --environment "$DEPLOY_ENV" --image-name "$IMAGE_NAME"
 
       - name: Set up QEMU for ARM64 runtime

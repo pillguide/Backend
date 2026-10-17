@@ -46,6 +46,33 @@ def required(document, dotted_key):
     return value
 
 
+def validate_secret_references(container, documents):
+    """Catch reference typos using declarations only; never fetch secret values."""
+    secrets = {}
+    for document in documents:
+        if document.get("kind") != "ExternalSecret":
+            continue
+        spec = required(document, "spec")
+        name = spec.get("target", {}).get("name") or required(document, "metadata.name")
+        keys = {entry["secretKey"] for entry in spec.get("data", [])}
+        # Extracted remote objects have keys that cannot be checked offline.
+        secrets[name] = (keys, bool(spec.get("dataFrom")))
+
+    references = [entry["secretRef"] for entry in container.get("envFrom", [])
+                  if "secretRef" in entry]
+    references += [entry["valueFrom"]["secretKeyRef"] for entry in container.get("env", [])
+                   if "secretKeyRef" in entry.get("valueFrom", {})]
+    for reference in references:
+        if reference.get("optional") is True:
+            continue
+        name = required(reference, "name")
+        if name not in secrets:
+            raise ValueError(f"Required Secret has no ExternalSecret declaration: {name}")
+        keys, dynamic_keys = secrets[name]
+        if "key" in reference and not dynamic_keys and reference["key"] not in keys:
+            raise ValueError(f"Required Secret key is not declared: {name}/{reference['key']}")
+
+
 def validate(environment, manifest_root, config_root, image_name):
     base = load(config_root / "application.yml")
     profile = load(config_root / f"application-{environment}.yml")
@@ -79,6 +106,7 @@ def validate(environment, manifest_root, config_root, image_name):
     if len(containers) != 1 or containers[0].get("name") != "backend":
         raise ValueError("Expected one backend image target")
     container = containers[0]
+    validate_secret_references(container, documents.values())
     if not re.fullmatch(re.escape(image_name) + r"(?:@sha256:[0-9a-f]{64}|:[\w.-]+)",
                         container.get("image", "")):
         raise ValueError("Unexpected image repository or image reference")
