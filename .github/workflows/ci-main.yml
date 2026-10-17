@@ -40,6 +40,20 @@ jobs:
           token: ${{ secrets.PAT }}
           persist-credentials: false
 
+      - name: Checkout manifest main
+        uses: actions/checkout@v4
+        with:
+          repository: pillguide/manifest
+          ref: main
+          token: ${{ secrets.PAT }}
+          path: manifest
+          fetch-depth: 0
+
+      - name: Validate deployment configuration
+        run: |
+          python3 -m pip install PyYAML==6.0.3
+          python3 scripts/validate_deployment.py --environment "$DEPLOY_ENV" --image-name "$IMAGE_NAME"
+
       - name: Set up QEMU for ARM64 runtime
         uses: docker/setup-qemu-action@v3
         with:
@@ -54,7 +68,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: Build and push ARM64 image
+      - name: Test, build and push ARM64 image
         id: image
         uses: docker/build-push-action@v6
         with:
@@ -62,15 +76,6 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
-
-      - name: Checkout manifest main
-        uses: actions/checkout@v4
-        with:
-          repository: pillguide/manifest
-          ref: main
-          token: ${{ secrets.PAT }}
-          path: manifest
-          fetch-depth: 0
 
       - name: Update only the selected environment image
         env:
