@@ -72,6 +72,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         // 복약 알림·복약 기록·FCM 기기 등록은 로그인 필수
+                        .requestMatchers("/api/v1/member/fcm-token").authenticated()
                         .requestMatchers("/api/v1/medication/**").authenticated()
 
                         .requestMatchers(
