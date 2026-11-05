@@ -54,6 +54,17 @@ public class Member extends BaseTimeEntity {
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RefreshToken> refreshTokens = new ArrayList<>();
 
+    @Column(name = "fcm_token", length = 2048, unique = true)
+    private String fcmToken;
+
+    public void updateFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
+    }
+
+    public void clearFcmToken() {
+        this.fcmToken = null;
+    }
+
     @Builder
     public Member(String email,
                   String provider,
