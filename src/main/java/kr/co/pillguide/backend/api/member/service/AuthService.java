@@ -89,7 +89,31 @@ public class AuthService {
     }
 
     @Transactional
-    public void logout(String refreshToken) {
-        refreshTokenRepository.deleteByToken(refreshToken);
+    public void logout(String refreshTokenValue) {
+        // 유효한 리프레시 토큰으로만 로그아웃 처리
+        if (!jwtService.isTokenValid(refreshTokenValue)) {
+            throw new UnauthorizedException(
+                    "유효하지 않은 Refresh Token입니다."
+            );
+        }
+
+        RefreshToken refreshToken = refreshTokenRepository
+                .findByToken(refreshTokenValue)
+                .orElseThrow(() -> new UnauthorizedException(
+                        "존재하지 않는 Refresh Token입니다."
+                ));
+
+        if (refreshToken.isExpired()) {
+            throw new UnauthorizedException(
+                    "만료된 Refresh Token입니다."
+            );
+        }
+
+        Member member = refreshToken.getMember();
+
+        // 로그아웃 이후 이 회원에게 푸시가 발송되지 않도록 연결 해제
+        member.clearFcmToken();
+
+        refreshTokenRepository.delete(refreshToken);
     }
 }
