@@ -27,7 +27,9 @@ public enum SuccessStatus {
     SCAN_SESSION_LIST_GET_SUCCESS(HttpStatus.OK, "스캔 세션 목록 조회 성공"),
     SCAN_SESSION_GET_SUCCESS(HttpStatus.OK, "스캔 세션 조회 성공"),
     SCAN_DRUG_GET_SUCCESS(HttpStatus.OK, "스캔 약 정보 조회 성공"),
-    
+    DRUG_SEARCH_SUCCESS(HttpStatus.OK, "약 검색 성공"),
+    DRUG_DETAIL_GET_SUCCESS(HttpStatus.OK, "약 상세 정보 조회 성공"),
+
     /// 201 CREATED
     MEMBER_SIGNUP_SUCCESS(HttpStatus.CREATED, "회원가입 성공"),
     IMAGE_UPLOAD_CREATE_SUCCESS(HttpStatus.CREATED, "이미지 업로드 성공"),
