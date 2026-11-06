@@ -15,6 +15,8 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
 
@@ -31,6 +33,13 @@ public class GlobalExceptionAdvice {
 
         return ResponseEntity.status(ex.getStatusCode())
                 .body(ApiResponse.fail(ex.getStatusCode(), ex.getMessage()));
+    }
+
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    public ResponseEntity<ApiResponse> handleNotFound(Exception ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.fail(ErrorStatus.NOT_FOUND_RESOURCE.getStatusCode(),
+                        ErrorStatus.NOT_FOUND_RESOURCE.getMessage()));
     }
 
     // 글로벌 예외 처리 (ex. 명시되어 있지 않은 모든 예외)

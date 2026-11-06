@@ -39,7 +39,8 @@ public class JwtAuthenticationProcessingFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String uri = request.getRequestURI();
 
-        return uri.startsWith("/oauth2/")
+        return uri.equals("/actuator/health/readiness")
+                || uri.startsWith("/oauth2/")
                 || uri.startsWith("/login/oauth2/")
                 || uri.startsWith("/api/v1/oauth2/")
                 || uri.startsWith("/swagger")

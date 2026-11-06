@@ -4,6 +4,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
@@ -18,8 +19,8 @@ import java.io.IOException;
 public class OAuth2AuthenticationFailureHandler
         implements AuthenticationFailureHandler {
 
-    private static final String FRONT_LOGIN_URL =
-            "http://localhost:3000/login";
+    @Value("${app.oauth2.frontend-failure-url:http://localhost:3000/login}")
+    private String frontendFailureUrl;
 
     @Override
     public void onAuthenticationFailure(
@@ -42,7 +43,7 @@ public class OAuth2AuthenticationFailureHandler
                 errorCode, errorMessage, exception);
 
         String redirectUrl = UriComponentsBuilder
-                .fromUriString(FRONT_LOGIN_URL)
+                .fromUriString(frontendFailureUrl)
                 .queryParam("error", errorCode)
                 .build()
                 .toUriString();

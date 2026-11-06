@@ -10,6 +10,7 @@ build/
 logs/
 docs/
 out/
+manifest/
 
 # Docker Image 빌드 시 포함
 !gradle/

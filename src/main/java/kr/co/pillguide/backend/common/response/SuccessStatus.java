@@ -31,6 +31,8 @@ public enum SuccessStatus {
     MEDICATION_UPDATE_SUCCESS(HttpStatus.OK, "복약 정보 변경 성공"),
     MEDICATION_DELETE_SUCCESS(HttpStatus.OK, "복약 알림 삭제 성공"),
     MEDICATION_GET_SUCCESS(HttpStatus.OK, "복약 정보 조회 성공"),
+    DRUG_SEARCH_SUCCESS(HttpStatus.OK, "약 검색 성공"),
+    DRUG_DETAIL_GET_SUCCESS(HttpStatus.OK, "약 상세 정보 조회 성공"),
 
     /// 201 CREATED
     MEMBER_SIGNUP_SUCCESS(HttpStatus.CREATED, "회원가입 성공"),
