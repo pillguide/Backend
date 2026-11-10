@@ -8,6 +8,17 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: pillguide_test
+          POSTGRES_PASSWORD: pillguide_test
+          POSTGRES_DB: pillguide_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U pillguide_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -29,6 +40,17 @@ jobs:
           python3 -B -m unittest discover -s scripts/tests -v
           python3 scripts/validate_deployment.py --environment dev
           python3 scripts/validate_deployment.py --environment production
+
+      - name: Set up Java for PostgreSQL regression tests
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Verify PostgreSQL behavior and concurrency
+        env:
+          PG_TEST_URL: jdbc:postgresql://localhost:5432/pillguide_test
+        run: bash ./gradlew postgresTest --no-daemon
 
       - name: Test and Docker build (no push)
         run: docker build -t temp:test -f Dockerfile .
