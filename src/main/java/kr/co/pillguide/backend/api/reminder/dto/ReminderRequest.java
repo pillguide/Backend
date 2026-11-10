@@ -35,6 +35,4 @@ public record ReminderRequest(
         Boolean enabled
 
 ) {
-    public static class MedicationReminder {
-    }
 }

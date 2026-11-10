@@ -73,7 +73,7 @@ public class MedicationService {
             ReminderRequest request
     ) {
         Member member = lockMember(memberId);
-        validateStart(request);
+        validateStart(request, now().toLocalDate());
 
         MedicationReminder reminder =
                 new MedicationReminder(member, request);
@@ -91,13 +91,14 @@ public class MedicationService {
 
         MedicationReminder reminder = owned(memberId, id);
 
+        LocalDateTime currentTime = now();
+
         // 기존 시작일은 유지 가능하지만 새 시작일을 과거로 변경할 수는 없음
         if (!request.startDate().equals(reminder.getStartDate())) {
-            validateStart(request);
+            validateStart(request, currentTime.toLocalDate());
         }
 
         // 수정 전 일정으로 오늘까지의 기록을 보존
-        LocalDateTime currentTime = now();
         generate(reminder, currentTime.toLocalDate());
 
         // 미래 미복용 기록은 제거하고 변경된 설정으로 다시 생성
@@ -152,12 +153,13 @@ public class MedicationService {
             LocalDate date
     ) {
         lockMember(memberId);
-        validateRange(date, date);
+        LocalDateTime currentTime = now();
+        validateRange(date, date, currentTime.toLocalDate());
 
         return dayOf(
                 date,
                 records(memberId, date, date),
-                now()
+                currentTime
         );
     }
 
@@ -167,18 +169,18 @@ public class MedicationService {
             LocalDate date
     ) {
         lockMember(memberId);
+        LocalDateTime currentTime = now();
+        validateRange(date, date, currentTime.toLocalDate());
 
         LocalDate from = date.with(
                 TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)
         );
         LocalDate to = from.plusDays(6);
 
-        validateRange(from, to);
+        validateRange(from, to, currentTime.toLocalDate());
 
         List<MedicationDose> records =
                 records(memberId, from, to);
-
-        LocalDateTime currentTime = now();
 
         List<Day> days = from.datesUntil(to.plusDays(1))
                 .map(day -> dayOf(
@@ -382,8 +384,7 @@ public class MedicationService {
     }
 
     // 신규 또는 변경된 시작일은 오늘부터 1년 이내
-    private void validateStart(ReminderRequest request) {
-        LocalDate currentDate = today();
+    private void validateStart(ReminderRequest request, LocalDate currentDate) {
         if (request.startDate().isBefore(currentDate)) {
             throw new BadRequestException(
                     "시작일은 오늘 이후여야 합니다."
@@ -400,10 +401,11 @@ public class MedicationService {
     // 조회 가능한 날짜 범위
     private void validateRange(
             LocalDate from,
-            LocalDate to
+            LocalDate to,
+            LocalDate currentDate
     ) {
         if (from.isBefore(LocalDate.of(1970, 1, 1))
-                || to.isAfter(today().plusDays(7))) {
+                || to.isAfter(currentDate.plusDays(7))) {
             throw new BadRequestException(
                     "조회는 1970년 이후부터 오늘 기준 7일 뒤까지 가능합니다."
             );
@@ -433,10 +435,6 @@ public class MedicationService {
                         .map(dose -> Dose.from(dose, currentTime))
                         .toList()
         );
-    }
-
-    private LocalDate today() {
-        return LocalDate.now(clock);
     }
 
     private LocalDateTime now() {

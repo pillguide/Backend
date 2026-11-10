@@ -73,6 +73,120 @@ class MedicationIntegrationTest {
     }
 
     @Test
+    void midnightEditRetainsTheAcceptedStartDaysOneTimeDose() {
+        var reminder = medication.create(memberId, request(today.plusDays(1), LocalTime.of(8, 0), true));
+        when(clock.instant()).thenReturn(Instant.parse("2026-11-10T14:59:59Z"),
+                Instant.parse("2026-11-10T15:00:00Z"));
+        medication.update(memberId, reminder.id(), request(today, LocalTime.of(23, 59), true));
+        var records = medication.day(memberId, today).doses();
+        assertEquals(1, records.size());
+        assertEquals(today.atTime(23, 59), records.getFirst().scheduledAt());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "{\"time\":\"25:00\"}", "{\"repeatDays\":[\"BOGUS\"]}",
+            "{\"enabled\":{}}", "{broken-json"
+    })
+    void malformedMedicationBodiesReturn400(String body) throws Exception {
+        mvc().perform(post("/api/v1/medication/reminders").with(user(principal()))
+                .contentType("application/json").content(body))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.success").value(false));
+        assertTrue(medication.list(memberId).isEmpty());
+    }
+
+    @Test
+    void malformedTokenBodyReturns400WithoutEchoingValue() throws Exception {
+        mvc().perform(put("/api/v1/member/fcm-token").with(user(principal()))
+                .contentType("application/json").content("{\"token\":{\"value\":\"private-device-token\"}}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("private-device-token"))));
+        assertEquals("test-device", members.findById(memberId).orElseThrow().getFcmToken());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"+999999999-12-31", "-999999999-01-01"})
+    void outOfRangeWeeklyDateReturns400BeforeDateArithmetic(String date) throws Exception {
+        mvc().perform(get("/api/v1/medication/records/weekly").param("date", date).with(user(principal())))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void bulkDeleteChecksAllOwnersBeforeChangingAnyReminder() {
+        var own = medication.create(memberId, request(today, LocalTime.of(12, 0), true));
+        Long other = members.saveAndFlush(Member.newSocialMember("other", "other@example.invalid", "test", "other")).getId();
+        var foreign = medication.create(other, request(today, LocalTime.of(13, 0), true));
+        assertThrows(NotFoundException.class, () -> medication.delete(memberId, List.of(own.id(), foreign.id())));
+        assertEquals(own, medication.detail(memberId, own.id()));
+        assertEquals(foreign, medication.detail(other, foreign.id()));
+        medication.delete(memberId, List.of(own.id(), own.id()));
+        assertTrue(medication.list(memberId).isEmpty());
+    }
+
+    @Test
+    void repeatedEditsAndUndoKeepOneDoseWithTheLatestApplicableSnapshot() {
+        var reminder = medication.create(memberId, request(today, LocalTime.of(12, 0), true));
+        var first = medication.day(memberId, today).doses().getFirst();
+        medication.check(memberId, first.id(), true);
+        medication.update(memberId, reminder.id(), request(today, LocalTime.of(14, 0), true));
+        medication.check(memberId, first.id(), false);
+        assertEquals(today.atTime(12, 0), medication.day(memberId, today).doses().getFirst().scheduledAt());
+        medication.update(memberId, reminder.id(), request(today, LocalTime.of(15, 0), true));
+        medication.update(memberId, reminder.id(), request(today, LocalTime.of(16, 0), true));
+        var records = medication.day(memberId, today).doses();
+        assertEquals(1, records.size());
+        assertEquals(today.atTime(16, 0), records.getFirst().scheduledAt());
+        assertNull(records.getFirst().takenAt());
+    }
+
+    @Test
+    void weeklyProgressAndStreakRemainConsistentAcrossCompletedAndEmptyDays() {
+        LocalDate monday = today.minusDays(1);
+        time.set(Instant.parse("2026-11-09T01:00:00Z"));
+        medication.create(memberId, new ReminderRequest("medicine", "one", LocalTime.of(10, 0), monday,
+                Set.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.THURSDAY), "", false));
+        var first = medication.day(memberId, monday).doses().getFirst();
+        medication.check(memberId, first.id(), true);
+        time.set(Instant.parse("2026-11-10T01:00:00Z"));
+        assertEquals(1, medication.home(memberId).streak());
+        medication.check(memberId, medication.day(memberId, today).doses().getFirst().id(), true);
+        assertEquals(2, medication.home(memberId).streak());
+        var week = medication.week(memberId, today);
+        assertEquals(3, week.progress().total());
+        assertEquals(2, week.progress().taken());
+        assertEquals(67, week.progress().percentage());
+        time.set(Instant.parse("2026-11-12T01:00:00Z"));
+        assertEquals(0, medication.home(memberId).streak());
+    }
+
+    @Test
+    void schedulerDoesNotConsumeDosesWhenCredentialsRefreshFails() throws Exception {
+        Long id = due();
+        var scheduler = new kr.co.pillguide.backend.api.reminder.service.MedicationNotificationScheduler(reminders, notifications, sender);
+        doThrow(new java.io.IOException("test credential outage")).when(sender).refreshCredentials();
+        scheduler.sendDueNotifications();
+        assertEquals(List.of(id), notifications.prepare(memberId));
+        verify(sender, never()).sendMedicationNotification(anyString(), anyLong(), anyString());
+        doNothing().when(sender).refreshCredentials();
+        scheduler.sendDueNotifications();
+        assertTrue(notifications.prepare(memberId).isEmpty());
+        verify(sender).sendMedicationNotification("test-device", id, "medicine");
+    }
+
+    @Test
+    void schedulerContinuesOtherDosesAfterOneUnexpectedSendFailure() {
+        Long first = due();
+        medication.create(memberId, request(today, LocalTime.of(10, 0), true));
+        Long second = notifications.prepare(memberId).getLast();
+        when(sender.sendMedicationNotification(eq("test-device"), eq(first), anyString()))
+                .thenThrow(new IllegalStateException("test transport failure"));
+        new kr.co.pillguide.backend.api.reminder.service.MedicationNotificationScheduler(reminders, notifications, sender)
+                .sendDueNotifications();
+        assertEquals(List.of(first), notifications.prepare(memberId));
+        verify(sender).sendMedicationNotification("test-device", second, "medicine");
+    }
+
+    @Test
     void preparingWithoutSendingDoesNotConsumeTheNotification() {
         medication.create(memberId, request(today, LocalTime.of(10, 0), true));
         assertEquals(1, notifications.prepare(memberId).size());
@@ -314,6 +428,21 @@ class MedicationIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.enabled").value(true));
         mvc.perform(get("/api/v1/medication/records/weekly").param("date", today.toString()).with(user(principal())))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.days.length()").value(7));
+        mvc.perform(put("/api/v1/medication/reminders/{id}", reminderId).with(user(principal()))
+                .contentType("application/json").content(json.replace("12:00", "13:00")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.time").value("13:00:00"));
+        mvc.perform(get("/api/v1/medication/reminders").with(user(principal())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(1));
+        mvc.perform(get("/api/v1/medication/records").param("date", today.toString()).with(user(principal())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.doses.length()").value(1));
+        mvc.perform(post("/api/v1/medication/reminders/bulk-delete").with(user(principal()))
+                .contentType("application/json").content("{\"ids\":[" + reminderId + "]}"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/v1/medication/reminders/{id}", reminderId).with(user(principal())))
+                .andExpect(status().isNotFound());
+        Long another = medication.create(memberId, request(today, LocalTime.of(14, 0), true)).id();
+        mvc.perform(delete("/api/v1/medication/reminders/{id}", another).with(user(principal())))
+                .andExpect(status().isOk());
         mvc.perform(post("/api/v1/medication/reminders").with(user(principal()))
                 .contentType("application/json").content("{}"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.success").value(false));
