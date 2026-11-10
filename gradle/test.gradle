@@ -3,8 +3,22 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testRuntimeOnly 'com.h2database:h2'
+    testImplementation 'org.springframework.security:spring-security-test'
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform { excludeTags 'postgres' }
+}
+
+tasks.register('postgresTest', Test) {
+    description = 'Runs medication behavior and concurrency tests against an isolated PostgreSQL database.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'postgres' }
+    doFirst {
+        if (!System.getenv('PG_TEST_URL')) {
+            throw new GradleException('PG_TEST_URL must identify an isolated test database for postgresTest')
+        }
+    }
 }

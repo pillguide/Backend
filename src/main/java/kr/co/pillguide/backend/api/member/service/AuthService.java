@@ -3,15 +3,12 @@ package kr.co.pillguide.backend.api.member.service;
 import kr.co.pillguide.backend.api.member.dto.TokenResponseDTO;
 import kr.co.pillguide.backend.api.member.entity.Member;
 import kr.co.pillguide.backend.api.member.entity.RefreshToken;
-import kr.co.pillguide.backend.api.member.repository.MemberRepository;
 import kr.co.pillguide.backend.api.member.repository.RefreshTokenRepository;
 import kr.co.pillguide.backend.common.exception.UnauthorizedException;
 import kr.co.pillguide.backend.common.security.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.time.LocalDateTime;
 
@@ -22,6 +19,7 @@ public class AuthService {
 
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final jakarta.persistence.EntityManager em;
 
     //나중에 혹시 일반 로그인 추가하게 되면 사용
     public TokenResponseDTO loginSuccess(Member member) {
@@ -89,7 +87,31 @@ public class AuthService {
     }
 
     @Transactional
-    public void logout(String refreshToken) {
-        refreshTokenRepository.deleteByToken(refreshToken);
+    public void logout(String refreshTokenValue) {
+        // 유효한 리프레시 토큰으로만 로그아웃 처리
+        if (!jwtService.isTokenValid(refreshTokenValue)) {
+            throw new UnauthorizedException(
+                    "유효하지 않은 Refresh Token입니다."
+            );
+        }
+
+        RefreshToken refreshToken = refreshTokenRepository
+                .findByToken(refreshTokenValue)
+                .orElseThrow(() -> new UnauthorizedException(
+                        "존재하지 않는 Refresh Token입니다."
+                ));
+
+        if (refreshToken.isExpired()) {
+            throw new UnauthorizedException(
+                    "만료된 Refresh Token입니다."
+            );
+        }
+
+        Member member = refreshToken.getMember();
+
+        // 로그아웃 이후 이 회원에게 푸시가 발송되지 않도록 연결 해제
+        MemberLocks.lock(em, member.getId()).clearFcmToken();
+
+        refreshTokenRepository.delete(refreshToken);
     }
 }

@@ -16,6 +16,17 @@ jobs:
   build-and-update:
     if: github.ref_name == 'main' || github.ref_name == 'develop'
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: pillguide_test
+          POSTGRES_PASSWORD: pillguide_test
+          POSTGRES_DB: pillguide_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U pillguide_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       DEPLOY_ENV: ${{ github.ref_name == 'main' && 'production' || 'dev' }}
       IMAGE_NAME: wien0128/pillguide-be
@@ -54,6 +65,17 @@ jobs:
           python3 -m pip install PyYAML==6.0.3
           python3 -B -m unittest discover -s scripts/tests -v
           python3 scripts/validate_deployment.py --environment "$DEPLOY_ENV" --image-name "$IMAGE_NAME"
+
+      - name: Set up Java for PostgreSQL regression tests
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Verify PostgreSQL behavior and concurrency
+        env:
+          PG_TEST_URL: jdbc:postgresql://localhost:5432/pillguide_test
+        run: bash ./gradlew postgresTest --no-daemon
 
       - name: Set up QEMU for ARM64 runtime
         uses: docker/setup-qemu-action@v3

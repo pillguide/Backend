@@ -11,6 +11,7 @@ import java.util.List;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
+@org.hibernate.annotations.DynamicUpdate
 @Table(name = "member",
     uniqueConstraints = @UniqueConstraint(columnNames = {"provider", "oauth_id"})   // 공급자 + 공급자 ID 복합 유니크 키
 )
@@ -53,6 +54,17 @@ public class Member extends BaseTimeEntity {
     // 리프레쉬 토큰
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RefreshToken> refreshTokens = new ArrayList<>();
+
+    @Column(name = "fcm_token", length = 2048, unique = true)
+    private String fcmToken;
+
+    public void updateFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
+    }
+
+    public void clearFcmToken() {
+        this.fcmToken = null;
+    }
 
     @Builder
     public Member(String email,

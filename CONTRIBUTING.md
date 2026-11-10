@@ -20,8 +20,8 @@
 
 ### CI/CD Flows
 
-- `CI-main.yml`: 운영 환경에 배포되는 CI/CD
-- `CI-pr.yml`: PR 머지 시 빌드 테스트 CI/CD
+- `ci-main.yml`: main/develop의 PostgreSQL 검증·빌드와 해당 환경 배포
+- `pr-ci.yml`: PR의 PostgreSQL 검증·빌드 (배포 없음)
 
 ## Git Branches
 
