@@ -62,6 +62,18 @@ public class MedicationController {
         );
     }
 
+    @Operation(summary = "내 복약 알림 상세 조회")
+    @GetMapping("/reminders/{id}")
+    public ResponseEntity<ApiResponse<Reminder>> detail(
+            @AuthenticationPrincipal SecurityMember principal,
+            @PathVariable("id") Long id
+    ) {
+        return ApiResponse.success(
+                SuccessStatus.MEDICATION_GET_SUCCESS,
+                service.detail(memberId(principal), id)
+        );
+    }
+
     @Operation(summary = "복약 알림 등록")
     @PostMapping("/reminders")
     public ResponseEntity<ApiResponse<Reminder>> create(

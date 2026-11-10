@@ -66,6 +66,13 @@ public class MedicationService {
         return member;
     }
 
+    // 복약 알림 개별 상세 조회
+    public Reminder detail(Long memberId, Long id) {
+        lockMember(memberId);
+
+        return Reminder.from(owned(memberId, id));
+    }
+
     // 회원의 복약 알림 목록 조회
     public List<Reminder> list(Long memberId) {
         lockMember(memberId);
