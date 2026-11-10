@@ -24,9 +24,13 @@ public enum SuccessStatus {
     NOTIFICATION_UNREAD_COUNT_GET_SUCCESS(HttpStatus.OK, "안 읽은 알림 개수 조회 성공"),
     NOTIFICATION_READ_SUCCESS(HttpStatus.OK, "알림 읽음 처리 성공"),
     MEMBER_DEVICE_FCM_TOKEN_REGISTER_SUCCESS(HttpStatus.OK, "FCM 토큰 등록 성공"),
+    MEMBER_DEVICE_FCM_TOKEN_DELETE_SUCCESS(HttpStatus.OK, "FCM 토큰 삭제 성공"),
     SCAN_SESSION_LIST_GET_SUCCESS(HttpStatus.OK, "스캔 세션 목록 조회 성공"),
     SCAN_SESSION_GET_SUCCESS(HttpStatus.OK, "스캔 세션 조회 성공"),
     SCAN_DRUG_GET_SUCCESS(HttpStatus.OK, "스캔 약 정보 조회 성공"),
+    MEDICATION_UPDATE_SUCCESS(HttpStatus.OK, "복약 정보 변경 성공"),
+    MEDICATION_DELETE_SUCCESS(HttpStatus.OK, "복약 알림 삭제 성공"),
+    MEDICATION_GET_SUCCESS(HttpStatus.OK, "복약 정보 조회 성공"),
     DRUG_SEARCH_SUCCESS(HttpStatus.OK, "약 검색 성공"),
     DRUG_DETAIL_GET_SUCCESS(HttpStatus.OK, "약 상세 정보 조회 성공"),
 
@@ -35,7 +39,8 @@ public enum SuccessStatus {
     IMAGE_UPLOAD_CREATE_SUCCESS(HttpStatus.CREATED, "이미지 업로드 성공"),
     MEMBER_ADDITIONAL_INFO_POST_SUCCESS(HttpStatus.CREATED, "추가 정보 입력 성공"),
     DRUG_CREATE_SUCCESS(HttpStatus.CREATED, "약 정보 등록 성공"),
-    
+    MEDICATION_CREATE_SUCCESS(HttpStatus.CREATED, "복약 알림 등록 성공"),
+
     /// 204 NO CONTENT
     SCHEDULE_DELETE_SUCCESS(HttpStatus.NO_CONTENT,"캘린더 일정 삭제 성공"),
     IMAGE_DELETE_SUCCESS(HttpStatus.NO_CONTENT, "이미지 삭제 성공"),

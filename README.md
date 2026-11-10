@@ -61,6 +61,7 @@ GitHub Actions가 테스트와 JAR 빌드 후 Linux ARM64 이미지를 배포하
 ## 연결 문서
 
 - [개발·기여 규칙](CONTRIBUTING.md) · [GitOps 배포 가이드](docs/gitops.md)
+- [복약 API 정책·알림 재시도·DB 전환·검증](docs/medication.md)
 - [Swagger 설정과 API 문서 구성](src/main/java/kr/co/pillguide/backend/common/config/swagger/SwaggerConfig.java)
 - [AI-server — 요청·응답 및 Spring 연동 명세](https://github.com/pillguide/AI-server/blob/main/docs/SPRING_INTEGRATION.md)
 - [Frontend](https://github.com/pillguide/Frontend) · [manifest](https://github.com/pillguide/manifest)

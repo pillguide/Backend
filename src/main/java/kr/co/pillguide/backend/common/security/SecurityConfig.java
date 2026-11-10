@@ -57,7 +57,7 @@ public class SecurityConfig {
                     config.setAllowedOrigins(allowedOrigins);
                     config.setAllowedOriginPatterns(allowedOriginPatterns);
                     config.setAllowedMethods(Arrays.asList(
-                            "GET", "POST", "PUT", "DELETE", "OPTIONS"
+                            "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
                     ));
                     config.setAllowCredentials(true);
                     config.setAllowedHeaders(Arrays.asList(
@@ -78,6 +78,10 @@ public class SecurityConfig {
                 .sessionManagement(sessionManagement -> sessionManagement
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
+                        // 복약 알림·복약 기록·FCM 기기 등록은 로그인 필수
+                        .requestMatchers("/api/v1/member/fcm-token").authenticated()
+                        .requestMatchers("/api/v1/medication/**").authenticated()
+
                         .requestMatchers(
                                 "/actuator/health/readiness",
                                 "/oauth2/**",
