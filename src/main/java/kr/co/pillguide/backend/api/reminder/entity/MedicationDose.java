@@ -50,8 +50,12 @@ public class MedicationDose {
     // null이면 미복용, 값이 있으면 복용 완료
     private LocalDateTime takenAt;
 
-    // 동일 예약에 대한 반복 푸시 방지
+    // 최근 시도 시각. 성공 접수 여부와 구분한다.
     private LocalDateTime notificationAttemptedAt;
+
+    private LocalDateTime notificationAcceptedAt;
+    private LocalDateTime notificationRetryAfter;
+    private LocalDateTime notificationStoppedAt;
 
     public MedicationDose(
             MedicationReminder reminder,
@@ -79,5 +83,25 @@ public class MedicationDose {
 
     public void notificationAttempted(LocalDateTime now) {
         this.notificationAttemptedAt = now;
+    }
+
+    public boolean canNotify(LocalDateTime now) {
+        return takenAt == null && !reminder.isDeleted() && reminder.isEnabled()
+                && notificationAcceptedAt == null && notificationStoppedAt == null
+                && !scheduledAt.isAfter(now) && !scheduledAt.plusMinutes(5).isBefore(now)
+                && (notificationRetryAfter == null || !notificationRetryAfter.isAfter(now));
+    }
+
+    public void notificationAccepted(LocalDateTime now) {
+        notificationAcceptedAt = now;
+        notificationRetryAfter = null;
+    }
+
+    public void retryNotificationAfter(LocalDateTime retryAfter) {
+        notificationRetryAfter = retryAfter;
+    }
+
+    public void stopNotification(LocalDateTime now) {
+        notificationStoppedAt = now;
     }
 }

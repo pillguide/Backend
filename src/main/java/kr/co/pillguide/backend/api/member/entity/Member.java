@@ -11,6 +11,7 @@ import java.util.List;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
+@org.hibernate.annotations.DynamicUpdate
 @Table(name = "member",
     uniqueConstraints = @UniqueConstraint(columnNames = {"provider", "oauth_id"})   // 공급자 + 공급자 ID 복합 유니크 키
 )

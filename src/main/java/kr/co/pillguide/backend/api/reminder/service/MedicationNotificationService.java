@@ -1,87 +1,82 @@
 package kr.co.pillguide.backend.api.reminder.service;
 
+import jakarta.persistence.EntityManager;
 import kr.co.pillguide.backend.api.member.entity.Member;
+import kr.co.pillguide.backend.api.member.service.FcmService;
 import kr.co.pillguide.backend.api.reminder.entity.MedicationDose;
+import kr.co.pillguide.backend.api.reminder.repository.MedicationDoseRepository;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class MedicationNotificationService {
-
     private final MedicationService medicationService;
+    private final MedicationDoseRepository doses;
+    private final EntityManager em;
+    private final ObjectProvider<FcmService> sender;
     private final Clock clock;
 
-    public MedicationNotificationService(
-            MedicationService medicationService,
-            @Qualifier("medicationClock") Clock clock
-    ) {
+    public MedicationNotificationService(MedicationService medicationService,
+            MedicationDoseRepository doses, EntityManager em, ObjectProvider<FcmService> sender,
+            @Qualifier("medicationClock") Clock clock) {
         this.medicationService = medicationService;
+        this.doses = doses;
+        this.em = em;
+        this.sender = sender;
         this.clock = clock;
     }
 
-    @Transactional
-    public List<NotificationTarget> prepare(Long memberId) {
-        // 다른 서버에서도 같은 회원은 동시에 처리할 수 없도록 잠금
+    @Transactional(timeout = 10)
+    public List<Long> prepare(Long memberId) {
         Member member = medicationService.lockMember(memberId);
-
-        String token = member.getFcmToken();
-
-        if (token == null || token.isBlank()) {
+        if (member.getFcmToken() == null || member.getFcmToken().isBlank()) {
             return List.of();
         }
-
         LocalDateTime now = LocalDateTime.now(clock);
-        LocalDateTime from = now.minusMinutes(5);
-
-        // 자정 전후도 처리할 수 있도록 조회 범위를 날짜로 변환
-        List<MedicationDose> records = medicationService.records(
-                memberId,
-                from.toLocalDate(),
-                now.toLocalDate()
-        );
-
-        List<NotificationTarget> targets = new ArrayList<>();
-
-        for (MedicationDose dose : records) {
-            if (dose.getTakenAt() != null
-                    || dose.getNotificationAttemptedAt() != null
-                    || dose.getReminder().isDeleted()
-                    || !dose.getReminder().isEnabled()
-                    || dose.getScheduledAt().isBefore(from)
-                    || dose.getScheduledAt().isAfter(now)) {
-                continue;
-            }
-
-            // 트랜잭션 커밋 후 전송하므로 다음 실행에서 중복 선점되지 않음
-            dose.notificationAttempted(now);
-
-            targets.add(new NotificationTarget(
-                    dose.getId(),
-                    memberId,
-                    token,
-                    dose.getMedicationName()
-            ));
-        }
-
-        return targets;
+        return medicationService.records(memberId, now.minusMinutes(5).toLocalDate(), now.toLocalDate())
+                .stream().filter(dose -> dose.canNotify(now)).map(MedicationDose::getId).toList();
     }
 
-    public record NotificationTarget(
-            Long doseId,
-            Long memberId,
-            String token,
-            String medicationName
-    ) {
-        // 토큰이 실수로 로그에 출력되지 않도록 제한
-        @Override
-        public String toString() {
-            return "NotificationTarget[doseId=" + doseId + "]";
+    // The member lock orders dispatch against logout, token transfer and medication changes.
+    @Transactional(timeout = 10)
+    public void send(Long memberId, Long doseId) {
+        Member member = medicationService.lockMember(memberId);
+        var found = doses.findByIdAndReminder_Member_Id(doseId, memberId);
+        FcmService fcm = sender.getIfAvailable();
+        if (found.isEmpty() || fcm == null || member.getFcmToken() == null) {
+            return;
         }
+        MedicationDose dose = found.get();
+        em.refresh(dose);
+        em.refresh(dose.getReminder());
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (!dose.canNotify(now)) {
+            return;
+        }
+        dose.notificationAttempted(now);
+        var result = fcm.sendMedicationNotification(member.getFcmToken(), doseId, dose.getMedicationName());
+        switch (result.outcome()) {
+            case ACCEPTED -> dose.notificationAccepted(LocalDateTime.now(clock));
+            case INVALID_TOKEN -> {
+                member.clearFcmToken();
+                dose.retryNotificationAfter(now.plusSeconds(30));
+            }
+            case PERMANENT_FAILURE -> dose.stopNotification(now);
+            case RETRY -> {
+                Duration delay = result.retryAfter();
+                if (delay.compareTo(Duration.ofMinutes(5)) > 0) {
+                    dose.retryNotificationAfter(dose.getScheduledAt().plusMinutes(5).plusSeconds(1));
+                } else {
+                    dose.retryNotificationAfter(LocalDateTime.now(clock).plus(delay));
+                }
+            }
+        }
+        em.flush();
     }
 }

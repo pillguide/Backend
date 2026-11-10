@@ -130,7 +130,7 @@ public final class MedicationResponses {
             LocalDate date,                // 한국 시간 기준 오늘 날짜
             Progress progress,             // 오늘의 복약 진행률
             int streak,                    // 복약 계획이 있고 모두 완료한 연속 날짜 수
-            Dose nextDose,                 // 향후 7일 내 활성 알림 중 가장 가까운 미복용 일정. 없으면 null
+            Dose nextDose,                 // 푸시 설정과 무관하게 오늘 현재 이후의 미복용 일정. 없으면 null
             List<Dose> doses               // 오늘의 복약 체크리스트
     ) {
     }

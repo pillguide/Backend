@@ -16,8 +16,8 @@ import java.io.InputStream;
 @ConditionalOnProperty(name = "fcm.enabled", havingValue = "true")
 public class FirebaseConfig {
 
-    @Bean(destroyMethod = "delete")
-    public FirebaseApp firebaseApp(
+    @Bean
+    public ServiceAccountCredentials fcmCredentials(
             ResourceLoader resourceLoader,
             @Value("${fcm.certification:}") String certification) {
 
@@ -30,15 +30,7 @@ public class FirebaseConfig {
         try (InputStream stream =
                      resourceLoader.getResource(certification).getInputStream()) {
 
-            ServiceAccountCredentials credentials =
-                    ServiceAccountCredentials.fromStream(stream);
-
-            FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(credentials)
-                    .setProjectId(credentials.getProjectId())
-                    .build();
-
-            return FirebaseApp.initializeApp(options, "pillguide-fcm");
+            return ServiceAccountCredentials.fromStream(stream);
 
         } catch (Exception exception) {
             // 인증 키 내용이 예외 로그에 노출되지 않도록 처리
@@ -46,6 +38,16 @@ public class FirebaseConfig {
                     "Firebase 초기화 실패: 인증 파일 경로와 형식을 확인하세요."
             );
         }
+    }
+
+    @Bean(destroyMethod = "delete")
+    public FirebaseApp firebaseApp(ServiceAccountCredentials credentials) {
+        FirebaseOptions options = FirebaseOptions.builder()
+                .setCredentials(credentials)
+                .setProjectId(credentials.getProjectId())
+                .setConnectTimeout(2000).setReadTimeout(5000).setWriteTimeout(5000)
+                .build();
+        return FirebaseApp.initializeApp(options, "pillguide-fcm");
     }
 
     @Bean

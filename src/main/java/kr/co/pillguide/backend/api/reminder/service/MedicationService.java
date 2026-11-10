@@ -1,8 +1,8 @@
 package kr.co.pillguide.backend.api.reminder.service;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
 import kr.co.pillguide.backend.api.member.entity.Member;
+import kr.co.pillguide.backend.api.member.service.MemberLocks;
 import kr.co.pillguide.backend.api.reminder.dto.ReminderRequest;
 import kr.co.pillguide.backend.api.reminder.dto.MedicationResponses.*;
 import kr.co.pillguide.backend.api.reminder.entity.MedicationDose;
@@ -11,7 +11,6 @@ import kr.co.pillguide.backend.api.reminder.repository.MedicationDoseRepository;
 import kr.co.pillguide.backend.api.reminder.repository.MedicationReminderRepository;
 import kr.co.pillguide.backend.common.exception.BadRequestException;
 import kr.co.pillguide.backend.common.exception.NotFoundException;
-import kr.co.pillguide.backend.common.exception.UnauthorizedException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,21 +48,7 @@ public class MedicationService {
     // 같은 회원의 동시 요청을 순서대로 처리해 기록 중복 생성 방지
     // 이후 FCM 서비스에서도 사용
     public Member lockMember(Long memberId) {
-        if (memberId == null) {
-            throw new UnauthorizedException("로그인이 필요합니다.");
-        }
-
-        Member member = em.find(
-                Member.class,
-                memberId,
-                LockModeType.PESSIMISTIC_WRITE
-        );
-
-        if (member == null) {
-            throw new NotFoundException("회원을 찾을 수 없습니다.");
-        }
-
-        return member;
+        return MemberLocks.lock(em, memberId);
     }
 
     // 복약 알림 개별 상세 조회
@@ -112,10 +97,11 @@ public class MedicationService {
         }
 
         // 수정 전 일정으로 오늘까지의 기록을 보존
-        generate(reminder, today());
+        LocalDateTime currentTime = now();
+        generate(reminder, currentTime.toLocalDate());
 
         // 미래 미복용 기록은 제거하고 변경된 설정으로 다시 생성
-        clearFuture(reminder);
+        clearFuture(reminder, currentTime);
         reminder.update(request);
 
         return Reminder.from(reminder);
@@ -150,9 +136,10 @@ public class MedicationService {
                 .map(id -> owned(memberId, id))
                 .toList();
 
+        LocalDateTime currentTime = now();
         for (MedicationReminder reminder : selected) {
-            generate(reminder, today());
-            clearFuture(reminder);
+            generate(reminder, currentTime.toLocalDate());
+            clearFuture(reminder, currentTime);
 
             // 과거 기록 보존을 위해 실제 행을 삭제하지 않음
             reminder.delete();
@@ -229,13 +216,13 @@ public class MedicationService {
                         )
                 );
 
-        if (dose.getDate().isAfter(today())) {
+        LocalDateTime currentTime = now();
+        if (!dose.getDate().equals(currentTime.toLocalDate())) {
             throw new BadRequestException(
-                    "미래 날짜의 복약은 체크할 수 없습니다."
+                    "오늘 날짜의 복약만 완료하거나 취소할 수 있습니다."
             );
         }
 
-        LocalDateTime currentTime = now();
         dose.check(taken, currentTime);
 
         return Dose.from(dose, currentTime);
@@ -245,8 +232,8 @@ public class MedicationService {
     public Home home(Long memberId) {
         lockMember(memberId);
 
-        LocalDate currentDate = today();
         LocalDateTime currentTime = now();
+        LocalDate currentDate = currentTime.toLocalDate();
 
         // 과거 기록과 향후 7일의 일정을 조회
         List<MedicationDose> all = records(
@@ -261,11 +248,11 @@ public class MedicationService {
                 )
                 .toList();
 
-        // 예정 시각순으로 조회된 기록 중 가장 가까운 활성 알림
+        // 푸시 설정과 무관하게 오늘 남은 가장 가까운 복약
         Dose next = all.stream()
                 .filter(dose ->
                         dose.getTakenAt() == null
-                                && dose.getReminder().isEnabled()
+                                && dose.getDate().equals(currentDate)
                                 && !dose.getReminder().isDeleted()
                                 && !dose.getScheduledAt()
                                 .isBefore(currentTime)
@@ -358,18 +345,18 @@ public class MedicationService {
     }
 
     // 수정/삭제 시 미래 미복용 기록 정리
-    private void clearFuture(MedicationReminder reminder) {
+    private void clearFuture(MedicationReminder reminder, LocalDateTime currentTime) {
         List<MedicationDose> future = doses
                 .findAllByReminder_IdAndScheduledAtAfterAndTakenAtIsNull(
                         reminder.getId(),
-                        now()
+                        currentTime
                 );
 
         doses.deleteAll(future);
         doses.flush();
 
         // 변경된 설정으로 오늘 이후 일정을 다시 생성할 수 있게 초기화
-        reminder.generatedThrough(today().minusDays(1));
+        reminder.generatedThrough(currentTime.toLocalDate().minusDays(1));
     }
 
     // 삭제되지 않은 알림 목록
@@ -396,13 +383,14 @@ public class MedicationService {
 
     // 신규 또는 변경된 시작일은 오늘부터 1년 이내
     private void validateStart(ReminderRequest request) {
-        if (request.startDate().isBefore(today())) {
+        LocalDate currentDate = today();
+        if (request.startDate().isBefore(currentDate)) {
             throw new BadRequestException(
                     "시작일은 오늘 이후여야 합니다."
             );
         }
 
-        if (request.startDate().isAfter(today().plusYears(1))) {
+        if (request.startDate().isAfter(currentDate.plusYears(1))) {
             throw new BadRequestException(
                     "시작일은 1년 이내여야 합니다."
             );

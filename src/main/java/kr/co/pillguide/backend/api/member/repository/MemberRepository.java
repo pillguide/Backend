@@ -15,6 +15,9 @@ public interface MemberRepository extends JpaRepository<Member, Long>{
 
     Optional<Member> findByEmail(String email);
 
+    @Query("select m.id from Member m where m.fcmToken = :token")
+    Optional<Long> findIdByFcmToken(@Param("token") String token);
+
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
         update Member m
