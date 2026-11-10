@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @Tag("postgres")
+@org.junit.jupiter.api.extension.ExtendWith(org.springframework.boot.test.system.OutputCaptureExtension.class)
 @TestPropertySource(properties = {
         "spring.datasource.url=${PG_TEST_URL}",
         "spring.datasource.username=${PG_TEST_USER:pillguide_test}",
@@ -22,6 +23,19 @@ import static org.mockito.Mockito.*;
 class MedicationPostgresTest extends MedicationIntegrationTest {
     @org.springframework.beans.factory.annotation.Autowired
     org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    @Test
+    void tokenConstraintErrorsKeepValuesOutOfApplicationLogs(
+            org.springframework.boot.test.system.CapturedOutput output) {
+        Long other = members.saveAndFlush(Member.newSocialMember("other", "other@example.invalid", "test", "other")).getId();
+        assertThrows(org.springframework.dao.DataIntegrityViolationException.class, () ->
+                new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+                    members.findById(other).orElseThrow().updateFcmToken("test-device");
+                    members.flush();
+                }));
+        assertTrue(output.getAll().contains("23505")); // Retain the useful SQL state.
+        assertFalse(output.getAll().contains("test-device"));
+    }
 
     @Test
     void oldSchemaUpgradePreservesRowsAndUnknownAttempts() throws Exception {
@@ -75,7 +89,7 @@ class MedicationPostgresTest extends MedicationIntegrationTest {
     }
 
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings = {"disable", "delete", "check", "logout", "transfer"})
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"disable", "delete", "check", "logout", "transfer", "edit"})
     void committedCancellationWinsAgainstWaitingDispatch(String action) throws Exception {
         Long id = due();
         Long reminderId = medication.day(memberId, today).doses().getFirst().reminderId();
@@ -91,6 +105,7 @@ class MedicationPostgresTest extends MedicationIntegrationTest {
                     case "check" -> medication.check(memberId, id, true);
                     case "logout" -> auth.logout(refreshToken);
                     case "transfer" -> tokens.register(other, "test-device");
+                    case "edit" -> medication.update(memberId, reminderId, request(today, java.time.LocalTime.of(20, 0), false));
                     default -> throw new AssertionError(action);
                 }
                 changed.countDown();
