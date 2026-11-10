@@ -21,6 +21,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /** One bounded FCM request. Retry scheduling belongs to the medication service. */
 @Service
@@ -73,7 +74,11 @@ public class FcmService {
                 .header("Authorization", "Bearer " + accessToken.getTokenValue())
                 .header("Content-Type", "application/json; charset=UTF-8")
                 .POST(HttpRequest.BodyPublishers.ofString(payload)).build();
-        var pending = client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        var received = new AtomicReference<HttpResponse.ResponseInfo>();
+        var pending = client.sendAsync(request, response -> {
+            received.set(response);
+            return HttpResponse.BodyHandlers.ofString().apply(response);
+        });
         try {
             // HttpRequest.timeout alone does not bound a stalled response body.
             var response = pending.get(5, TimeUnit.SECONDS);
@@ -83,23 +88,40 @@ public class FcmService {
             if (isUnregistered(response.body())) {
                 return new SendResult(Outcome.INVALID_TOKEN, Duration.ZERO);
             }
-            if (response.statusCode() == 408 || response.statusCode() == 429
-                    || response.statusCode() >= 500 || response.statusCode() == 401) {
-                if (response.statusCode() == 401) {
-                    refreshRequired.set(true);
-                }
-                return new SendResult(Outcome.RETRY,
-                        retryDelay(response.headers().firstValue("Retry-After").orElse("")));
+            SendResult retry = retryFromHeaders(received.get());
+            if (retry != null) {
+                return retry;
             }
             return new SendResult(Outcome.PERMANENT_FAILURE, Duration.ZERO);
         } catch (ExecutionException | TimeoutException exception) {
             pending.cancel(true);
-            return new SendResult(Outcome.RETRY, Duration.ofSeconds(30));
+            return incompleteResponse(received.get());
         } catch (InterruptedException exception) {
             pending.cancel(true);
             Thread.currentThread().interrupt();
-            return new SendResult(Outcome.RETRY, Duration.ofSeconds(30));
+            return incompleteResponse(received.get());
         }
+    }
+
+    private SendResult incompleteResponse(HttpResponse.ResponseInfo response) {
+        SendResult retry = retryFromHeaders(response);
+        return retry != null ? retry : new SendResult(Outcome.RETRY, Duration.ofSeconds(30));
+    }
+
+    // A stalled/truncated body must not discard a backoff already received in headers.
+    private SendResult retryFromHeaders(HttpResponse.ResponseInfo response) {
+        if (response == null) {
+            return null;
+        }
+        int status = response.statusCode();
+        if (status == 401) {
+            refreshRequired.set(true);
+        }
+        if (status == 408 || status == 429 || status >= 500 || status == 401) {
+            return new SendResult(Outcome.RETRY,
+                    retryDelay(response.headers().firstValue("Retry-After").orElse("")));
+        }
+        return null;
     }
 
     private boolean isUnregistered(String body) {

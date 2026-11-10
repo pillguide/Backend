@@ -111,4 +111,17 @@ class FcmServiceTest {
             assertEquals(FcmService.Outcome.RETRY, sender.sendMedicationNotification("device", 42L, "medicine").outcome());
         });
     }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {429, 503})
+    void slowErrorBodyStillHonorsReceivedRetryAfter(int errorStatus) {
+        status = errorStatus;
+        retryAfter = "120";
+        delayMillis = 8000;
+        assertTimeoutPreemptively(Duration.ofSeconds(7), () -> {
+            var result = sender.sendMedicationNotification("device", 42L, "medicine");
+            assertEquals(FcmService.Outcome.RETRY, result.outcome());
+            assertEquals(Duration.ofSeconds(120), result.retryAfter());
+        });
+    }
 }
