@@ -32,6 +32,11 @@ public class DrugInfo {
     @Column(columnDefinition = "text")
     private String effect;
 
+    @Column(columnDefinition = "text")
+    private String selectedSourcesJson;
+    private String provenanceStatus;
+    private LocalDateTime sourceFetchedAt;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -43,6 +48,26 @@ public class DrugInfo {
         this.sideEffects = sideEffects;
         this.effect = effect;
         this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateSelectedSources(String json, String provenanceStatus, LocalDateTime sourceFetchedAt) {
+        if (json == null || json.isBlank() || provenanceStatus == null || provenanceStatus.isBlank()
+                || sourceFetchedAt == null) {
+            throw new IllegalArgumentException("Selected sources, status and fetch time are required");
+        }
+        this.selectedSourcesJson = json;
+        this.provenanceStatus = provenanceStatus;
+        this.sourceFetchedAt = sourceFetchedAt;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateDescriptions(String effect, String dosageMethod, String storageMethod,
+                                   String sideEffects) {
+        this.effect = effect;
+        this.dosageMethod = dosageMethod;
+        this.storageMethod = storageMethod;
+        this.sideEffects = sideEffects;
         this.updatedAt = LocalDateTime.now();
     }
 }
