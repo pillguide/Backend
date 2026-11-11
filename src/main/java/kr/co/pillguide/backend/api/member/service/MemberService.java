@@ -28,7 +28,7 @@ public class MemberService {
 
         // 이메일 없는 사용자 처리 (카카오)
         if (member.getEmail() == null && requestDTO.email() == null) {
-            throw new IllegalArgumentException("이메일 입력이 필요합니다.");
+            throw new kr.co.pillguide.backend.common.exception.BadRequestException("이메일 입력이 필요합니다.");
         }
 
         if (member.getEmail() == null) {

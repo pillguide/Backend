@@ -48,7 +48,7 @@ public enum ErrorStatus {
     CONFLICT_OAUTH2_EMAIL(HttpStatus.CONFLICT, "이미 다른 소셜 계정으로 가입된 이메일입니다."),
 
 	/// 415 UNSUPPORTED MEDIA TYPE
-	UNSUPPORTED_MEDIA_TYPE(HttpStatus.BAD_REQUEST, "지원하지 않는 Content-Type 입니다."),
+	UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "지원하지 않는 Content-Type 입니다."),
 
 	/// 500 SERVER ERROR
 	INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다."),

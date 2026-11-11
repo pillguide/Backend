@@ -24,9 +24,8 @@ public class MemberController {
     private final JwtService jwtService;
 
     @Operation(
-            summary = "소셜 로그인 추가 정보 입력 API",
-            description = "소셜 로그인 후 추가 정보를 입력합니다. <br>" +
-            "필수 정보: 성별, 생년월일"
+            summary = "선택적 프로필 정보 수정 API",
+            description = "로그인 완료 조건이 아닌 기존 프로필 편집 API입니다. 이 API 호출 시 성별, 생년월일을 함께 전달합니다."
     )
     @PostMapping("/additional_info")
     public ResponseEntity<ApiResponse<Void>> updateMemberInfo(

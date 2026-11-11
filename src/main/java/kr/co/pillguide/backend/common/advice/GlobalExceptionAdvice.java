@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.util.stream.Collectors;
 
@@ -46,7 +49,7 @@ public class GlobalExceptionAdvice {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse> handleGlobalException(Exception ex) {
 
-        log.error("[handleGlobalException] 알 수 없는 오류 발생 : {}", ex.getMessage(), ex);
+        log.error("처리되지 않은 내부 오류 유형: {}", ex.getClass().getName());
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .body(ApiResponse.fail(ErrorStatus.INTERNAL_SERVER_ERROR.getStatusCode(),
@@ -71,8 +74,7 @@ public class GlobalExceptionAdvice {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
 
-        String errorMsg = String.format("파라미터 '%s'의 값 '%s'을(를) %s 타입으로 변환할 수 없습니다",
-                ex.getName(), ex.getValue(), ex.getRequiredType().getSimpleName());
+        String errorMsg = "요청 파라미터의 형식이 올바르지 않습니다.";
 
         log.warn("파라미터 타입 변환 실패 - {}", errorMsg);
 
@@ -91,14 +93,10 @@ public class GlobalExceptionAdvice {
                 .body(ApiResponse.fail(ErrorStatus.BAD_REQUEST_MISSING_REQUIRED_FIELD.getStatusCode(), errorMsg));
     }
 
-    // 잘못된 인자 전달 (ex. 숫자 필드에 문자열 입력)
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
-
-        log.warn("잘못된 인자 - {}", ex.getMessage());
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST.value())
-                .body(ApiResponse.fail(ErrorStatus.BAD_REQUEST_MISSING_PARAM.getStatusCode(), ex.getMessage()));
+    @ExceptionHandler({HttpMessageNotReadableException.class, MissingRequestHeaderException.class,
+            MissingServletRequestPartException.class})
+    public ResponseEntity<ApiResponse> handleMalformedRequest(Exception ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.fail(400, "요청 형식이나 필수 입력을 확인해 주세요."));
     }
 
     // DTO 유효성 검증 실패 (ex. @NotBlank 필드를 비운 채로 요청)

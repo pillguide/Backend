@@ -9,7 +9,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Table(name = "refresh_token")
+@Table(name = "refresh_token", uniqueConstraints =
+        @UniqueConstraint(name = "uk_refresh_token_member", columnNames = "member_id"))
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -19,7 +20,7 @@ public class RefreshToken extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 200)
+    @Column(nullable = false, unique = true, length = 512)
     private String token;
 
     @ManyToOne(fetch = FetchType.LAZY)

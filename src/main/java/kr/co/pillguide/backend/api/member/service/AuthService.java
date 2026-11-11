@@ -1,9 +1,11 @@
 package kr.co.pillguide.backend.api.member.service;
 
+import jakarta.persistence.EntityManager;
 import kr.co.pillguide.backend.api.member.dto.TokenResponseDTO;
 import kr.co.pillguide.backend.api.member.entity.Member;
 import kr.co.pillguide.backend.api.member.entity.RefreshToken;
 import kr.co.pillguide.backend.api.member.repository.RefreshTokenRepository;
+import kr.co.pillguide.backend.common.exception.NotFoundException;
 import kr.co.pillguide.backend.common.exception.UnauthorizedException;
 import kr.co.pillguide.backend.common.security.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -11,107 +13,66 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class AuthService {
-
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final jakarta.persistence.EntityManager em;
+    private final EntityManager em;
 
-    //나중에 혹시 일반 로그인 추가하게 되면 사용
-    public TokenResponseDTO loginSuccess(Member member) {
-
-        Long memberId = member.getId();
-
-        refreshTokenRepository.deleteByMemberId(memberId);
-
-        // 토큰 생성
-        String accessToken = jwtService.createAccessToken(memberId);
-        String refreshTokenValue = jwtService.createRefreshToken(memberId);
-
-        // refresh token 저장
-        RefreshToken refreshToken = RefreshToken.builder()
-                .token(refreshTokenValue)
-                .member(member)
-                .expiresAt(LocalDateTime.now().plusDays(60))
-                .build();
-
-        refreshTokenRepository.save(refreshToken);
-
-        return new TokenResponseDTO(accessToken, refreshTokenValue);
+    public TokenResponseDTO loginSuccess(Member principal) {
+        Member member = lockMember(principal.getId());
+        return issue(member, refreshTokenRepository.findByMemberId(member.getId()).orElse(null));
     }
 
-    /**
-     * Refresh Token 재발급
-     */
-    public TokenResponseDTO reissue(String refreshTokenValue) {
-
-        // 1️⃣ JWT 자체 검증
-        if (!jwtService.isTokenValid(refreshTokenValue)) {
-            throw new UnauthorizedException("유효하지 않은 Refresh Token입니다.");
-        }
-
-        // 2️⃣ DB 조회
-        RefreshToken refreshToken = refreshTokenRepository
-                .findByToken(refreshTokenValue)
-                .orElseThrow(() ->
-                        new UnauthorizedException("존재하지 않는 Refresh Token입니다.")
-                );
-
-        // 3️⃣ 만료 검증 (DB 기준)
-        if (refreshToken.isExpired()) {
-            refreshTokenRepository.delete(refreshToken);
-            throw new UnauthorizedException("만료된 Refresh Token입니다.");
-        }
-
-        Member member = refreshToken.getMember();
-        Long memberId = member.getId();
-
-        // 4️⃣ 새 토큰 발급
-        String newAccessToken = jwtService.createAccessToken(memberId);
-        String newRefreshTokenValue = jwtService.createRefreshToken(memberId);
-
-        // 5️⃣ Refresh Token rotation
-        refreshToken.updateToken(
-                newRefreshTokenValue,
-                LocalDateTime.now().plusDays(60)
-        );
-
-        return new TokenResponseDTO(
-                newAccessToken,
-                newRefreshTokenValue
-        );
+    public TokenResponseDTO reissue(String value) {
+        var claims = jwtService.parseRefresh(value);
+        Member member = lockMember(claims.memberId());
+        return issue(member, currentRefresh(member, claims, value));
     }
 
-    @Transactional
-    public void logout(String refreshTokenValue) {
-        // 유효한 리프레시 토큰으로만 로그아웃 처리
-        if (!jwtService.isTokenValid(refreshTokenValue)) {
-            throw new UnauthorizedException(
-                    "유효하지 않은 Refresh Token입니다."
-            );
+    public void logout(String value) {
+        var claims = jwtService.parseRefresh(value);
+        Member member = lockMember(claims.memberId());
+        RefreshToken token = currentRefresh(member, claims, value);
+        member.revokeAuthentication();
+        // Keep the inverse cascade collection consistent with the row deletion.
+        member.removeRefreshToken(token);
+        refreshTokenRepository.delete(token);
+    }
+
+    private RefreshToken currentRefresh(Member member, JwtService.TokenClaims claims, String value) {
+        if (member.getAuthVersion() != claims.authVersion()) throw invalidRefresh();
+        RefreshToken token = refreshTokenRepository.findByMemberId(member.getId())
+                .orElseThrow(this::invalidRefresh);
+        if (!token.getToken().equals(value) || token.isExpired()) throw invalidRefresh();
+        return token;
+    }
+
+    private TokenResponseDTO issue(Member member, RefreshToken existing) {
+        String access = jwtService.createAccessToken(member.getId(), member.getAuthVersion());
+        String refresh = jwtService.createRefreshToken(member.getId(), member.getAuthVersion());
+        LocalDateTime expires = LocalDateTime.ofInstant(jwtService.parseRefresh(refresh).expiresAt(), ZoneId.systemDefault());
+        if (existing == null) {
+            refreshTokenRepository.save(RefreshToken.builder().member(member).token(refresh).expiresAt(expires).build());
+        } else {
+            existing.updateToken(refresh, expires);
         }
+        return new TokenResponseDTO(access, refresh);
+    }
 
-        RefreshToken refreshToken = refreshTokenRepository
-                .findByToken(refreshTokenValue)
-                .orElseThrow(() -> new UnauthorizedException(
-                        "존재하지 않는 Refresh Token입니다."
-                ));
-
-        if (refreshToken.isExpired()) {
-            throw new UnauthorizedException(
-                    "만료된 Refresh Token입니다."
-            );
+    private Member lockMember(Long memberId) {
+        try {
+            return MemberLocks.lock(em, memberId);
+        } catch (NotFoundException e) {
+            throw invalidRefresh();
         }
+    }
 
-        Member member = refreshToken.getMember();
-
-        // 로그아웃 이후 이 회원에게 푸시가 발송되지 않도록 연결 해제
-        MemberLocks.lock(em, member.getId()).clearFcmToken();
-
-        refreshTokenRepository.delete(refreshToken);
+    private UnauthorizedException invalidRefresh() {
+        return new UnauthorizedException("유효하지 않은 Refresh Token입니다.");
     }
 }

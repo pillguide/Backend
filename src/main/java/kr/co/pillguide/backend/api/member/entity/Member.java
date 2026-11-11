@@ -58,6 +58,14 @@ public class Member extends BaseTimeEntity {
     @Column(name = "fcm_token", length = 2048, unique = true)
     private String fcmToken;
 
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    private long authVersion;
+
+    public void revokeAuthentication() {
+        this.authVersion = Math.incrementExact(this.authVersion);
+        clearFcmToken();
+    }
+
     public void updateFcmToken(String fcmToken) {
         this.fcmToken = fcmToken;
     }
