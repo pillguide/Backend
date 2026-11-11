@@ -1,5 +1,7 @@
 package kr.co.pillguide.backend.api.scan.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.net.httpserver.HttpServer;
 import kr.co.pillguide.backend.api.drug.entity.Drug;
 import kr.co.pillguide.backend.api.drug.reference.ReferenceReadService;
 import kr.co.pillguide.backend.api.drug.reference.ReferenceSnapshot;
@@ -13,6 +15,7 @@ import kr.co.pillguide.backend.api.member.service.AuthService;
 import kr.co.pillguide.backend.api.member.service.FcmService;
 import kr.co.pillguide.backend.api.scan.exception.ScanException;
 import kr.co.pillguide.backend.api.scan.inference.AiClient;
+import kr.co.pillguide.backend.api.scan.inference.AiProperties;
 import kr.co.pillguide.backend.api.scan.inference.AiPredictionResult;
 import kr.co.pillguide.backend.api.scan.inference.PhotoInput;
 import kr.co.pillguide.backend.api.scan.inference.PhotoValidator;
@@ -32,6 +35,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.nio.charset.StandardCharsets;
+import java.net.InetSocketAddress;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -71,6 +75,8 @@ class ScanWorkflowPostgresTest {
     @Autowired DrugRepository drugs;
     @Autowired AuthService auth;
     @Autowired JdbcTemplate jdbc;
+    @Autowired ScanWriteService writer;
+    @Autowired ObjectMapper mapper;
     @MockitoBean PhotoValidator photos;
     @MockitoBean AiClient ai;
     @MockitoBean ReferenceReadService references;
@@ -111,6 +117,38 @@ class ScanWorkflowPostgresTest {
         assertEquals("NOT_READY", outcome.result().drugs().get(0).representativeImageStatus());
         assertEquals(3L, jdbc.queryForObject("select count(*) from scan_drug where scan_session_id = ?",
                 Long.class, outcome.result().sessionId()));
+    }
+
+    @Test
+    void realAiClientDegradationWarningSurvivesWorkflowStorageAndHistoryRead() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        String body = "{\"model\":\"H\",\"model_sha256\":\"" + MODEL_HASH
+                + "\",\"mapping_sha256\":\"" + catalog.mappingSha256()
+                + "\",\"image\":{\"width\":100,\"height\":100},\"predictions\":[{\"detection_id\":1,"
+                + "\"class_id\":" + catalog.byItemSeq(A).orElseThrow().classId()
+                + ",\"item_seq\":\"" + A
+                + "\",\"confidence\":0.9,\"bbox_xyxy\":[0.1,0.1,0.4,0.4],"
+                + "\"recognition_may_be_degraded\":true}]}";
+        server.createContext("/predict", exchange -> {
+            exchange.getRequestBody().readAllBytes();
+            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, bytes.length);
+            try (var output = exchange.getResponseBody()) { output.write(bytes); }
+        });
+        server.start();
+        try {
+            AiClient actualAi = new AiClient(new AiProperties("http://127.0.0.1:" + server.getAddress().getPort(),
+                    "local-test-key", MODEL_HASH, catalog.mappingSha256(), 1000, 3000, 1024 * 1024),
+                    catalog, mapper);
+            ScanWorkflow actualWorkflow = new ScanWorkflow(photos, actualAi, references, writer, scans);
+            var result = actualWorkflow.analyze(claims, UUID.randomUUID(), file("degraded-photo")).result();
+            assertTrue(result.drugs().getFirst().recognitionMayBeDegraded());
+            assertEquals(Boolean.TRUE, jdbc.queryForObject("select recognition_may_be_degraded from scan_drug "
+                    + "where scan_session_id = ?", Boolean.class, result.sessionId()));
+            assertTrue(scans.getScanSession(member.getId(), result.sessionId())
+                    .drugs().getFirst().recognitionMayBeDegraded());
+        } finally { server.stop(0); }
     }
 
     @Test

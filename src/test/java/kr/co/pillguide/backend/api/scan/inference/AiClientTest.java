@@ -13,6 +13,9 @@ import org.springframework.http.HttpStatus;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -116,7 +119,7 @@ class AiClientTest {
     }
 
     @Test
-    void rejectsUnconfiguredClientWithoutRequestAndTimesOutSlowBodyOnce() {
+    void rejectsUnconfiguredClientWithoutRequestAndTimesOutSlowHeadersOnce() {
         AiProperties unset = new AiProperties("", "", MODEL, MAPPING, 500, 100, 1024 * 1024);
         assertStatus(() -> new AiClient(unset, catalog, new ObjectMapper()).predict(input()),
                 HttpStatus.SERVICE_UNAVAILABLE);
@@ -126,6 +129,35 @@ class AiClientTest {
             send(exchange, 200, success("[]"));
         };
         assertStatus(() -> client(40).predict(input()), HttpStatus.GATEWAY_TIMEOUT);
+        assertThat(requests.get()).isEqualTo(1);
+    }
+
+    @Test
+    void timesOutAfterHeadersWhileBodyIsStillPendingWithoutRetry() throws Exception {
+        CountDownLatch headersSent = new CountDownLatch(1);
+        CountDownLatch releaseBody = new CountDownLatch(1);
+        response = exchange -> {
+            try {
+                byte[] bytes = success("[]").getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+                exchange.sendResponseHeaders(200, bytes.length);
+                exchange.getResponseBody().flush();
+                headersSent.countDown();
+                if (releaseBody.await(5, TimeUnit.SECONDS)) {
+                    try (var out = exchange.getResponseBody()) { out.write(bytes); }
+                }
+            } catch (IOException ignored) { exchange.close(); }
+            catch (InterruptedException ignored) { Thread.currentThread().interrupt(); exchange.close(); }
+        };
+        try (var worker = Executors.newSingleThreadExecutor()) {
+            var result = worker.submit(() -> {
+                try { client(1000).predict(input()); return (RuntimeException) null; }
+                catch (RuntimeException error) { return error; }
+            });
+            assertThat(headersSent.await(5, TimeUnit.SECONDS)).isTrue();
+            assertThat(result.get(5, TimeUnit.SECONDS)).isInstanceOf(ScanException.class)
+                    .satisfies(error -> assertThat(((ScanException) error).status()).isEqualTo(HttpStatus.GATEWAY_TIMEOUT));
+        } finally { releaseBody.countDown(); }
         assertThat(requests.get()).isEqualTo(1);
     }
 

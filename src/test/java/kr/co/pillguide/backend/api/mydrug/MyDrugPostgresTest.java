@@ -31,6 +31,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -43,6 +45,8 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -70,6 +74,7 @@ class MyDrugPostgresTest {
     @Autowired MedicationDoseRepository doses;
     @Autowired AuthService auth;
     @Autowired JdbcTemplate jdbc;
+    @Autowired PlatformTransactionManager transactions;
     @MockitoBean FcmService fcm;
 
     private Member owner;
@@ -141,6 +146,71 @@ class MyDrugPostgresTest {
             assertEquals(one.selected().getFirst().firstRegisteredAt(), two.selected().getFirst().firstRegisteredAt());
         }
         assertEquals(1L, relationCount(owner.getId()));
+    }
+
+    @Test
+    void addWaitsForInFlightRemovalThenCreatesOneNewRelation() throws Exception {
+        var request = new AddMyDrugsRequest(session.getId(), List.of(detectionIds.getFirst()));
+        Long oldId = service.add(claims, request).selected().getFirst().memberDrugId();
+        CountDownLatch removedInsideTransaction = new CountDownLatch(1);
+        CountDownLatch releaseRemoval = new CountDownLatch(1);
+        CountDownLatch addStarted = new CountDownLatch(1);
+        try (var workers = Executors.newFixedThreadPool(2)) {
+            var removal = workers.submit(() -> new TransactionTemplate(transactions).execute(status -> {
+                service.delete(claims, oldId);
+                removedInsideTransaction.countDown();
+                try { assertTrue(releaseRemoval.await(10, TimeUnit.SECONDS)); }
+                catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new RuntimeException(error); }
+                return oldId;
+            }));
+            try {
+                assertTrue(removedInsideTransaction.await(5, TimeUnit.SECONDS));
+                var addition = workers.submit(() -> {
+                    addStarted.countDown();
+                    return service.add(claims, request);
+                });
+                assertTrue(addStarted.await(5, TimeUnit.SECONDS));
+                assertThrows(TimeoutException.class, () -> addition.get(200, TimeUnit.MILLISECONDS));
+                releaseRemoval.countDown();
+                assertEquals(oldId, removal.get(10, TimeUnit.SECONDS));
+                var added = addition.get(10, TimeUnit.SECONDS);
+                assertTrue(added.created());
+                assertNotEquals(oldId, added.selected().getFirst().memberDrugId());
+                assertEquals(1L, relationCount(owner.getId()));
+            } finally { releaseRemoval.countDown(); }
+        }
+    }
+
+    @Test
+    void removalWaitsForInFlightAddThenRemovesThatRelation() throws Exception {
+        var request = new AddMyDrugsRequest(session.getId(), List.of(detectionIds.getFirst()));
+        CountDownLatch addedInsideTransaction = new CountDownLatch(1);
+        CountDownLatch releaseAddition = new CountDownLatch(1);
+        CountDownLatch removalStarted = new CountDownLatch(1);
+        AtomicReference<Long> createdId = new AtomicReference<>();
+        try (var workers = Executors.newFixedThreadPool(2)) {
+            var addition = workers.submit(() -> new TransactionTemplate(transactions).execute(status -> {
+                Long id = service.add(claims, request).selected().getFirst().memberDrugId();
+                createdId.set(id);
+                addedInsideTransaction.countDown();
+                try { assertTrue(releaseAddition.await(10, TimeUnit.SECONDS)); }
+                catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new RuntimeException(error); }
+                return id;
+            }));
+            try {
+                assertTrue(addedInsideTransaction.await(5, TimeUnit.SECONDS));
+                var removal = workers.submit(() -> {
+                    removalStarted.countDown();
+                    return service.delete(claims, createdId.get());
+                });
+                assertTrue(removalStarted.await(5, TimeUnit.SECONDS));
+                assertThrows(TimeoutException.class, () -> removal.get(200, TimeUnit.MILLISECONDS));
+                releaseAddition.countDown();
+                assertEquals(createdId.get(), addition.get(10, TimeUnit.SECONDS));
+                assertEquals(createdId.get(), removal.get(10, TimeUnit.SECONDS));
+                assertEquals(0L, relationCount(owner.getId()));
+            } finally { releaseAddition.countDown(); }
+        }
     }
 
     @Test

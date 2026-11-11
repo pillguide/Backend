@@ -16,6 +16,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -72,6 +73,34 @@ class ReferenceReadPostgresTest {
         assertTrue(empty.drugs().isEmpty());
         assertEquals(0, empty.combination().pairCount());
         assertTrue(empty.combination().matches().isEmpty());
+    }
+
+    @Test
+    void allFourReviewedPairsMatchInEitherOrderAndUnreviewedPairsStayUnconfirmed() {
+        publish("rules", false);
+        for (var approved : ApprovedInteractionPairs.ALL) {
+            String first = approved.firstItemSeq();
+            String second = approved.secondItemSeq();
+            for (List<String> order : List.of(List.of(first, second), List.of(second, first))) {
+                var snapshot = reader.read(new LinkedHashSet<>(order));
+                assertEquals(2, snapshot.combination().uniqueDrugCount());
+                assertEquals(1, snapshot.combination().pairCount());
+                assertEquals(1, snapshot.combination().confirmedContraindicationCount());
+                var match = snapshot.combination().matches().getFirst();
+                assertEquals(Set.of(first, second), Set.of(match.firstItemSeq(), match.secondItemSeq()));
+                assertEquals(approved.kind().name(), match.evidenceType());
+                assertEquals("rules summary", match.summary());
+            }
+        }
+        String unrelated = catalog.all().stream().map(SupportedDrugCatalog.SupportedDrug::itemSeq)
+                .filter(seq -> ApprovedInteractionPairs.ALL.stream().noneMatch(pair ->
+                        pair.firstItemSeq().equals(seq) || pair.secondItemSeq().equals(seq)))
+                .findFirst().orElseThrow();
+        var noMatch = reader.read(Set.of("197500541", unrelated));
+        assertEquals(1, noMatch.combination().pairCount());
+        assertEquals(0, noMatch.combination().confirmedContraindicationCount());
+        assertTrue(noMatch.combination().matches().isEmpty());
+        assertEquals("REVIEWED_LIST_ONLY", noMatch.combination().coverageStatus());
     }
 
     @Test
