@@ -16,6 +16,7 @@ public enum SuccessStatus {
     MEMBER_GET_SUCCESS(HttpStatus.OK, "회원 정보 조회 성공"),
     MEMBER_RESIGN_DELETE_SUCCESS(HttpStatus.OK, "회원탈퇴 성공"),
     MEMBER_INFO_GET_SUCCESS(HttpStatus.OK, "현재 사용자 정보 조회 성공"),
+    MEMBER_INFO_UPDATE_SUCCESS(HttpStatus.OK, "프로필 수정 성공"),
     AUTH_SUCCESS(HttpStatus.OK, "인증에 성공했습니다."),
     TOKEN_REISSUE_SUCCESS(HttpStatus.OK, "액세스/리프레쉬 토큰 재발급 성공"),
     S3_PUT_URL_CREATE_SUCCESS(HttpStatus.OK, "S3 PUT URL 발급 성공"),
