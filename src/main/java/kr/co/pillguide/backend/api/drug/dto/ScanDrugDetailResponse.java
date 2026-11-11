@@ -9,6 +9,7 @@ public record ScanDrugDetailResponse(
         String dosageMethod,
         String storageMethod,
         String sideEffects,
-        String representativeImageStatus
+        String representativeImageStatus,
+        DrugReferenceInfo reference
 ) {
 }

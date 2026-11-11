@@ -12,15 +12,12 @@ import kr.co.pillguide.backend.api.member.entity.Member;
 import kr.co.pillguide.backend.api.member.service.MemberLocks;
 import kr.co.pillguide.backend.api.scan.exception.ScanException;
 import kr.co.pillguide.backend.api.scan.inference.AiPredictionResult;
-import kr.co.pillguide.backend.common.exception.NotFoundException;
-import kr.co.pillguide.backend.common.exception.UnauthorizedException;
 import kr.co.pillguide.backend.common.security.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -36,7 +33,7 @@ public class ScanWriteService {
 
     @Transactional
     public Optional<Long> findReplay(JwtService.TokenClaims claims, UUID requestId, String requestHash) {
-        checkMember(claims);
+        MemberLocks.lockAuthenticated(em, claims);
         return existing(claims.memberId(), requestId, requestHash).map(ScanSession::getId);
     }
 
@@ -44,7 +41,7 @@ public class ScanWriteService {
     public WriteResult persist(JwtService.TokenClaims claims, UUID requestId, String imageHash,
                                int imageWidth, int imageHeight,
                                AiPredictionResult result, ReferenceSnapshot reference) {
-        Member member = checkMember(claims);
+        Member member = MemberLocks.lockAuthenticated(em, claims);
         Optional<ScanSession> previous = existing(claims.memberId(), requestId, imageHash);
         if (previous.isPresent()) return new WriteResult(previous.get().getId(), false);
 
@@ -69,23 +66,6 @@ public class ScanWriteService {
             throw new ScanException(HttpStatus.CONFLICT, "같은 요청 ID에 다른 사진이 사용되었습니다.", null);
         }
         return previous;
-    }
-
-    private Member checkMember(JwtService.TokenClaims claims) {
-        if (claims == null || claims.memberId() == null || claims.expiresAt() == null
-                || !Instant.now().isBefore(claims.expiresAt())) {
-            throw new UnauthorizedException("인증이 만료되었습니다.");
-        }
-        Member member;
-        try {
-            member = MemberLocks.lock(em, claims.memberId());
-        } catch (NotFoundException ex) {
-            throw new UnauthorizedException("인증되지 않은 사용자입니다.");
-        }
-        if (member.getAuthVersion() != claims.authVersion()) {
-            throw new UnauthorizedException("폐기된 인증입니다.");
-        }
-        return member;
     }
 
     private String snapshotJson(ReferenceSnapshot reference) {

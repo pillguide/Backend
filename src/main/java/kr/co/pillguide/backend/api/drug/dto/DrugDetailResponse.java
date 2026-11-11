@@ -10,7 +10,8 @@ public record DrugDetailResponse(
         String effect,
         String sideEffects,
         String dosageMethod,
-        String storageMethod
+        String storageMethod,
+        DrugReferenceInfo reference
 ) {
 
     public static DrugDetailResponse from(Drug drug) {
@@ -23,7 +24,8 @@ public record DrugDetailResponse(
                 info != null ? info.getEffect() : null,
                 info != null ? info.getSideEffects() : null,
                 info != null ? info.getDosageMethod() : null,
-                info != null ? info.getStorageMethod() : null
+                info != null ? info.getStorageMethod() : null,
+                DrugReferenceInfo.from(drug)
         );
     }
 }

@@ -2,6 +2,7 @@ package kr.co.pillguide.backend.api.drug.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.co.pillguide.backend.api.drug.dto.ScanDrugDetailResponse;
+import kr.co.pillguide.backend.api.drug.dto.DrugReferenceInfo;
 import kr.co.pillguide.backend.api.drug.dto.ScanDrugSummaryResponse;
 import kr.co.pillguide.backend.api.drug.dto.ScanSessionDetailResponse;
 import kr.co.pillguide.backend.api.drug.dto.ScanSessionSummaryResponse;
@@ -78,7 +79,7 @@ public class ScanService {
                 session.isLegacy() ? drug.getImageUrl() : null,
                 info == null ? null : info.getEffect(), info == null ? null : info.getDosageMethod(),
                 info == null ? null : info.getStorageMethod(), info == null ? null : info.getSideEffects(),
-                session.isLegacy() ? null : "NOT_READY");
+                session.isLegacy() ? null : "NOT_READY", DrugReferenceInfo.from(drug));
     }
 
     private ScanSession getMemberSession(Long memberId, Long sessionId) {

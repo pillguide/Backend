@@ -98,6 +98,7 @@ class ScanLiveTest {
             String access = tokens.accessToken();
             String refresh = tokens.refreshToken();
             int detections = 0;
+            JsonNode selectedScan = null;
             for (String group : GROUPS) {
                 for (int index = 1; index <= 2; index++) {
                     String label = group + "_val_0" + index;
@@ -111,6 +112,7 @@ class ScanLiveTest {
                     JsonNode saved = json(created, 201).path("data");
                     comparePrediction(direct, saved, requestId, version);
                     detections += saved.path("drugCount").asInt();
+                    if (selectedScan == null && saved.path("drugCount").asInt() > 0) selectedScan = saved;
                     long historyId = saved.path("sessionId").asLong();
                     assertTrue(historyId > 0);
                     assertEquals(1, jdbc.queryForObject("select count(*) from scan_session where id = ? and member_id = ?",
@@ -126,6 +128,37 @@ class ScanLiveTest {
                 }
             }
             report.put("sampleDetections", detections);
+            assertNotNull(selectedScan, "At least one real AI detection is needed for the My Drug HTTP check");
+            long selectedSessionId = selectedScan.path("sessionId").asLong();
+            JsonNode selectedDetection = selectedScan.path("drugs").get(0);
+            long detectionId = selectedDetection.path("detectionId").asLong();
+            assertTrue(detectionId > 0);
+            String choice = mapper.writeValueAsString(Map.of(
+                    "scanSessionId", selectedSessionId, "detectionIds", List.of(detectionId)));
+            JsonNode firstSelection = json(postJson("/api/v1/my-drugs", choice, access), 201).path("data");
+            assertEquals(1, firstSelection.size());
+            JsonNode firstMyDrug = firstSelection.get(0);
+            long memberDrugId = firstMyDrug.path("memberDrugId").asLong();
+            String firstRegisteredAt = firstMyDrug.path("firstRegisteredAt").asText();
+            assertTrue(memberDrugId > 0);
+            assertEquals(selectedDetection.path("code").asText(), firstMyDrug.path("code").asText());
+            JsonNode repeatedSelection = json(postJson("/api/v1/my-drugs", choice, access), 200).path("data");
+            assertEquals(1, repeatedSelection.size());
+            JsonNode repeatedMyDrug = repeatedSelection.get(0);
+            assertEquals(memberDrugId, repeatedMyDrug.path("memberDrugId").asLong());
+            assertEquals(firstRegisteredAt, repeatedMyDrug.path("firstRegisteredAt").asText());
+            JsonNode myDrugPage = json(get("/api/v1/my-drugs?page=0&size=20", access), 200).path("data");
+            assertEquals(1, myDrugPage.path("totalElements").asInt());
+            assertEquals(memberDrugId, myDrugPage.path("items").get(0).path("memberDrugId").asLong());
+            JsonNode myDrugDetail = json(get("/api/v1/my-drugs/" + memberDrugId, access), 200).path("data");
+            assertEquals(firstRegisteredAt, myDrugDetail.path("firstRegisteredAt").asText());
+            assertEquals(selectedDetection.path("code").asText(), myDrugDetail.path("drug").path("reference").path("code").asText());
+            assertEquals(memberDrugId, json(delete("/api/v1/my-drugs/" + memberDrugId, access), 200).path("data").asLong());
+            assertEquals(404, get("/api/v1/my-drugs/" + memberDrugId, access).statusCode());
+            assertEquals(selectedScan, json(get("/api/v1/scan/" + selectedSessionId, access), 200).path("data"));
+            report.put("myDrugSource", "selected real AI detection with controlled reference fixture");
+            report.put("myDrugHttpChecks", "201 add, 200 duplicate, GET page/detail, 200 delete, scan retained");
+            assertEmpty(uploadTmp);
             byte[] white = whitePng();
             JsonNode directWhite = json(directAi(white, "image/png"), 200);
             JsonNode savedWhite = json(scan(white, "image/png", UUID.randomUUID(), access), 201).path("data");
@@ -222,6 +255,20 @@ class ScanLiveTest {
                 .timeout(Duration.ofSeconds(20)).GET();
         if (bearer != null) request.header("Authorization", "Bearer " + bearer);
         return http.send(request.build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<String> postJson(String path, String body, String bearer) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
+                .timeout(Duration.ofSeconds(20)).header("Authorization", "Bearer " + bearer)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body)).build();
+        return http.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<String> delete(String path, String bearer) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
+                .timeout(Duration.ofSeconds(20)).header("Authorization", "Bearer " + bearer).DELETE().build();
+        return http.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     private JsonNode json(HttpResponse<String> response, int status) throws IOException {

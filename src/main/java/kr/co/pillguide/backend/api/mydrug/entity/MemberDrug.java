@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 @Entity
 @Table(name = "member_drug", uniqueConstraints =
@@ -37,6 +38,6 @@ public class MemberDrug {
         }
         this.member = member;
         this.drug = drug;
-        this.firstRegisteredAt = LocalDateTime.now();
+        this.firstRegisteredAt = LocalDateTime.now().truncatedTo(ChronoUnit.MICROS);
     }
 }
