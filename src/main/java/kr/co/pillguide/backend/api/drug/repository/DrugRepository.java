@@ -6,11 +6,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface DrugRepository extends JpaRepository<Drug, Long> {
 
     Optional<Drug> findByCode(String code);
+
+    @EntityGraph(attributePaths = "drugInfo")
+    List<Drug> findAllByCodeIn(Collection<String> codes);
 
     Page<Drug> findByNameContainingIgnoreCaseOrderByNameAscDrugIdAsc(
             String keyword,
