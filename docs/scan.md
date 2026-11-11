@@ -1,6 +1,6 @@
-# 사진 스캔·이력 계약 (구현 목표)
+# 사진 스캔·이력 계약
 
-> 2026-11-11 승인된 목표 계약이다. 이 문서의 새 API와 응답 필드는 구현·실제 HTTP 검증 전까지 제공 중이라고 간주하지 않는다. 기준: Backend `origin/develop` `9195a767`, 2026-11-11 구현 계획, AI-server `4c3a044`의 `docs/SPRING_INTEGRATION.md` 공개 계약.
+> 사진 스캔·이력은 2026-11-11 P4 로컬 구현·실제 HTTP 검증을 통과했다. 내 약은 P5 구현 대상이고 dev 배포·대표 이미지 비교는 아직 완료되지 않았다. 기준: Backend `origin/develop` `9195a767`, 2026-11-11 구현 계획, AI-server `4c3a044`의 `docs/SPRING_INTEGRATION.md` 공개 계약.
 
 ## 의미와 전환
 
@@ -20,7 +20,7 @@
 | `GET /api/v1/scan/{sessionId}` | 본인 이력의 당시 검출과 당시 병용 결과. 기존 `sessionId`, `scannedAt`, `drugs` 유지. 사진 원본·crop URL은 없다. |
 | `GET /api/v1/scan/{sessionId}/drugs/{drugId}` | 본인 세션에 포함된 품목의 **현재** 상세. 타인/없는 세션·품목은 동일하게 404. 동일 품목의 여러 검출은 이 상세에 함께 연결될 수 있다. |
 
-새 세션 결과에는 `sessionId`, `scannedAt`(분석 시각), `imageSize`(EXIF 방향 보정 후 너비·높이), `modelSha256`, `mappingSha256`, `referenceVersion`, `drugs`, `combination`을 제공한다. `drugs`의 **각 검출**에는 영구 `detectionId`, 응답 내 `detectionIndex`, `drugId`, 문자열 `itemSeq`, 당시 품목명, `confidence`, 정규화된 `bboxXyxy`, `recognitionMayBeDegraded`, 자료·허가 상태와 대표 이미지 정보가 필요하다. AI의 `detection_id`는 응답 내 순번이므로 DB의 영구 `detectionId`와 혼동하지 않는다. 기존 `name`, `code`, `imageUrl`을 사용하던 조회자는 호환 필드를 계속 받는다. 이미지 주소가 만료될 수 있으면 조회 시 새로 발급하며 이력에 URL을 저장하지 않는다.
+새 세션 결과에는 `sessionId`, `scannedAt`(분석 시각), `imageSize`(EXIF 방향 보정 후 너비·높이), `modelSha256`, `mappingSha256`, `referenceVersion`, `drugs`, `combination`을 제공한다. `drugs`의 **각 검출**에는 영구 `detectionId`, 응답 내 `detectionIndex`, `drugId`, 문자열 `code`(item_seq), 당시 품목명, `confidence`, 정규화된 `bboxXyxy`, `recognitionMayBeDegraded`, 자료·허가 상태와 대표 이미지 정보가 필요하다. AI의 `detection_id`는 응답 내 순번이므로 DB의 영구 `detectionId`와 혼동하지 않는다. 기존 `name`, `code`, `imageUrl`을 사용하던 조회자는 호환 필드를 계속 받는다. 이미지 주소가 만료될 수 있으면 조회 시 새로 발급하며 이력에 URL을 저장하지 않는다.
 
 `combination`은 **고유 품목** 기준 `uniqueDrugCount`, `pairCount`, `confirmedContraindicationCount`, `matches`, `coverageStatus`와 자료 기준일을 구분한다. `matches`의 각 항목은 두 품목, 근거 유형(직접 품목/공식 성분코드 연결), 공식 사유·조건, 검수된 짧은 설명, 출처·기준일을 담는다. 미일치는 승인된 참조 목록에서 금기를 확인하지 못했다는 뜻이며 안전 판정이 아니다. 참조자료가 부족하면 해당 상태를 명시한다. AI의 빈 `predictions`는 정상 무검출 세션으로 저장하고 `drugs=[]`, 조합 0개로 반환한다.
 

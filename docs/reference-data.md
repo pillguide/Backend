@@ -38,4 +38,3 @@
 기존 `Drug`, `DrugInfo`, `ScanSession`, `ScanDrug` 행과 외래키를 보존한다. 새 컬럼은 과거 행에 적용 가능한 nullable/default 설계로 추가하고, 고유 제약 전 중복을 검사한다. 중복 데이터를 임의 삭제하지 않는다. `MemberDrug`는 회원·품목 관계만 보유하며 기존 약·스캔·복약을 연쇄 삭제하지 않는다. `DrugInteraction`은 정렬된 두 품목 ID에 고유 제약과 `low_id < high_id` 검사를 둔다.
 
 2026-11-11 22:19 KST의 실제 dev 읽기 점검에서 회원 2/refresh 2, 회원별 refresh 중복·고아 참조 0, 약·스캔 0행을 확인했다. 모델 매핑은 중복 없는 150개 identity로 검증했다. 이 점검은 새 참조자료가 dev에 적재됐다는 의미가 아니다. 반복 적용 가능한 전환 SQL 및 현재 스키마 대조 결과가 확인된 뒤에만 `ddl-auto=validate` 전환을 준비한다. 과거 스캔에 존재하지 않았던 confidence, bbox, 병용 snapshot을 추정해 채우지 않는다.
-

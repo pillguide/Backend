@@ -3,6 +3,7 @@ package kr.co.pillguide.backend.common.advice;
 import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.ConstraintViolationException;
 import kr.co.pillguide.backend.common.exception.BaseException;
+import kr.co.pillguide.backend.api.scan.exception.ScanException;
 import kr.co.pillguide.backend.common.response.ApiResponse;
 import kr.co.pillguide.backend.common.response.ErrorStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,8 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 
 import java.util.stream.Collectors;
 
@@ -27,6 +30,23 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionAdvice {
+
+    @ExceptionHandler(ScanException.class)
+    public ResponseEntity<ApiResponse> handleScanException(ScanException ex) {
+        var response = ResponseEntity.status(ex.status());
+        if (ex.retryAfterSeconds() != null) response.header("Retry-After", ex.retryAfterSeconds().toString());
+        return response.body(ApiResponse.fail(ex.status().value(), ex.getMessage()));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse> handleUploadLimit(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(413).body(ApiResponse.fail(413, "사진 또는 요청 크기가 허용 한도를 초과했습니다."));
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ApiResponse> handleMultipartFormat(MultipartException ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.fail(400, "사진 업로드 요청 형식을 확인해 주세요."));
+    }
 
     // 커스텀 예외 처리 (ex. BAD_REQUEST, CONFLICT 등)
     @ExceptionHandler(BaseException.class)
