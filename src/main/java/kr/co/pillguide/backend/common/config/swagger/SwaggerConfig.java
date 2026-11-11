@@ -37,7 +37,10 @@ public class SwaggerConfig {
         SecurityRequirement securityRequirement = new SecurityRequirement().addList("bearer");
 
         return new OpenAPI()
-                .components(new Components().addSecuritySchemes("bearer", securityScheme))
+                .components(new Components().addSecuritySchemes("bearer", securityScheme)
+                        .addSecuritySchemes("refresh", new SecurityScheme().type(SecurityScheme.Type.APIKEY)
+                                .in(SecurityScheme.In.HEADER).name("X-Refresh-Token")
+                                .description("현재 refresh JWT. 업무 API에는 사용할 수 없습니다.")))
                 .security(Collections.singletonList(securityRequirement));
     }
 }

@@ -54,4 +54,9 @@ public class FilterExceptionHandler implements AuthenticationEntryPoint, AccessD
 
         resp.getWriter().write(json);
     }
+
+    public void internalError(HttpServletResponse response, RuntimeException exception) throws IOException {
+        log.error("인증 처리 내부 오류 유형: {}", exception.getClass().getName());
+        setErrorResponse(response, 500, ErrorStatus.INTERNAL_SERVER_ERROR.getMessage());
+    }
 }

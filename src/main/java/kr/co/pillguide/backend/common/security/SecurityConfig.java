@@ -5,6 +5,11 @@ import kr.co.pillguide.backend.common.oauth2.OAuth2AuthenticationSuccessHandler;
 import kr.co.pillguide.backend.common.security.filter.FilterExceptionHandler;
 import kr.co.pillguide.backend.common.security.filter.JwtAuthenticationProcessingFilter;
 import kr.co.pillguide.backend.common.oauth2.CustomOAuth2UserService;
+import kr.co.pillguide.backend.common.oauth2.ExchangeChallengeAuthorizationRequestResolver;
+import kr.co.pillguide.backend.common.oauth2.ExchangeChallengeAuthorizationRequestRepository;
+import org.springframework.http.HttpMethod;
+import jakarta.servlet.DispatcherType;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -34,6 +39,8 @@ public class SecurityConfig {
     private final OAuth2AuthenticationFailureHandler oauth2AuthenticationFailureHandler;
     private final CustomOAuth2UserService oauth2UserService;
     private final JwtAuthenticationProcessingFilter jwtAuthenticationProcessingFilter;
+    private final ExchangeChallengeAuthorizationRequestResolver exchangeRequestResolver;
+    private final ExchangeChallengeAuthorizationRequestRepository exchangeRequestRepository;
 
     @Value("${app.cors.allowed-origins:http://localhost:3000}")
     private List<String> allowedOrigins;
@@ -51,6 +58,7 @@ public class SecurityConfig {
         http
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable)
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
@@ -78,18 +86,19 @@ public class SecurityConfig {
                 .sessionManagement(sessionManagement -> sessionManagement
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        // 복약 알림·복약 기록·FCM 기기 등록은 로그인 필수
-                        .requestMatchers("/api/v1/member/fcm-token").authenticated()
-                        .requestMatchers("/api/v1/medication/**").authenticated()
-
-                        .requestMatchers(
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/v1/auth/reissue", "/api/v1/auth/logout", "/api/v1/auth/exchange").permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/actuator/health",
                                 "/actuator/health/readiness",
-                                "/oauth2/**",
-                                "/api/v1/oauth2/**",
-                                "/login/oauth2/**",
-                                "/api/v1/**",
+                                "/actuator/health/liveness",
+                                "/api/v1/oauth2/authorize/*",
+                                "/login/oauth2/code/*",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
+                                "/v3/api-docs",
                                 "/v3/api-docs/**"
                         ).permitAll()
                         .anyRequest().authenticated()
@@ -97,7 +106,9 @@ public class SecurityConfig {
                 // ===== OAuth2 로그인 =====
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(auth -> auth
-                                .baseUri("/api/v1/oauth2/authorize"))
+                                .baseUri("/api/v1/oauth2/authorize")
+                                .authorizationRequestResolver(exchangeRequestResolver)
+                                .authorizationRequestRepository(exchangeRequestRepository))
                         .successHandler(oauth2AuthenticationSuccessHandler)
                         .failureHandler(oauth2AuthenticationFailureHandler)
                         .userInfoEndpoint(userInfoEndpointConfig -> userInfoEndpointConfig
@@ -110,5 +121,12 @@ public class SecurityConfig {
         http.addFilterBefore(jwtAuthenticationProcessingFilter, OAuth2LoginAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    FilterRegistrationBean<JwtAuthenticationProcessingFilter> jwtFilterRegistration() {
+        var registration = new FilterRegistrationBean<>(jwtAuthenticationProcessingFilter);
+        registration.setEnabled(false);
+        return registration;
     }
 }

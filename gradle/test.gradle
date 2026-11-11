@@ -7,7 +7,7 @@ dependencies {
 }
 
 tasks.named('test') {
-    useJUnitPlatform { excludeTags 'postgres' }
+    useJUnitPlatform { excludeTags 'postgres', 'mfds-live', 'ai-live' }
 }
 
 tasks.register('postgresTest', Test) {
@@ -15,10 +15,45 @@ tasks.register('postgresTest', Test) {
     group = 'verification'
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
-    useJUnitPlatform { includeTags 'postgres' }
+    useJUnitPlatform { includeTags 'postgres'; excludeTags 'mfds-live', 'ai-live' }
     doFirst {
         if (!System.getenv('PG_TEST_URL')) {
             throw new GradleException('PG_TEST_URL must identify an isolated test database for postgresTest')
+        }
+    }
+}
+
+tasks.register('mfdsLiveTest', Test) {
+    description = 'Explicitly collects public MFDS references into the loopback-only disposable test database.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'mfds-live'; excludeTags 'ai-live' }
+    outputs.upToDateWhen { false }
+    doFirst {
+        if (System.getenv('MFDS_LIVE_TEST') != 'true' ||
+                System.getenv('PG_TEST_URL') != 'jdbc:postgresql://127.0.0.1:55432/pillguide_test') {
+            throw new GradleException('Live MFDS verification requires explicit opt-in and the isolated loopback database')
+        }
+    }
+}
+
+tasks.register('aiLiveTest', Test) {
+    description = 'Explicitly checks live loopback AI via Spring against the isolated PostgreSQL database.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'ai-live' }
+    outputs.upToDateWhen { false }
+    doFirst {
+        if (System.getenv('AI_LIVE_TEST') != 'true' ||
+                System.getenv('PG_TEST_URL') != 'jdbc:postgresql://127.0.0.1:55432/pillguide_test' ||
+                System.getenv('AI_LIVE_BASE_URL') != 'http://127.0.0.1:8000' ||
+                !System.getenv('AI_LIVE_API_KEY') ||
+                !System.getenv('AI_LIVE_SAMPLE_ROOT') ||
+                !System.getenv('AI_LIVE_UPLOAD_TMP') ||
+                !System.getenv('AI_LIVE_REPORT')) {
+            throw new GradleException('Live AI verification requires explicit opt-in, loopback services, isolated database and report paths')
         }
     }
 }

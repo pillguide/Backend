@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
-import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -30,24 +29,24 @@ public class OAuth2AuthenticationFailureHandler
     ) throws IOException, ServletException {
 
         String errorCode = "oauth_failed";
-        String errorMessage = "소셜 로그인에 실패했습니다.";
-
         if (exception instanceof OAuth2AuthenticationException oauthEx) {
-            OAuth2Error error = oauthEx.getError();
-
-            errorCode = error.getErrorCode();
-            errorMessage = error.getDescription();
+            String providerCode = oauthEx.getError().getErrorCode();
+            if ("access_denied".equals(providerCode) || "invalid_exchange_challenge".equals(providerCode)) {
+                errorCode = providerCode;
+            }
         }
-
-        log.error("OAuth2 login failed. code={}, message={}",
-                errorCode, errorMessage, exception);
+        log.warn("OAuth2 login failed - code={}", errorCode);
 
         String redirectUrl = UriComponentsBuilder
                 .fromUriString(frontendFailureUrl)
                 .queryParam("error", errorCode)
                 .build()
+                .encode()
                 .toUriString();
 
+        response.setHeader("Cache-Control", "no-store");
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Referrer-Policy", "no-referrer");
         response.sendRedirect(redirectUrl);
     }
 }
