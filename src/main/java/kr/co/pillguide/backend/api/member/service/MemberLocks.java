@@ -5,10 +5,26 @@ import jakarta.persistence.LockModeType;
 import kr.co.pillguide.backend.api.member.entity.Member;
 import kr.co.pillguide.backend.common.exception.NotFoundException;
 import kr.co.pillguide.backend.common.exception.UnauthorizedException;
+import kr.co.pillguide.backend.common.security.jwt.JwtService;
+import java.time.Instant;
 
 /** Shared lock order starts at the member, before reminder or token changes. */
 public final class MemberLocks {
     private MemberLocks() { }
+
+    public static Member lockAuthenticated(EntityManager em, JwtService.TokenClaims claims) {
+        if (claims == null || claims.memberId() == null || claims.expiresAt() == null
+                || !Instant.now().isBefore(claims.expiresAt())) {
+            throw new UnauthorizedException("인증이 만료되었습니다.");
+        }
+        Member member;
+        try { member = lock(em, claims.memberId()); }
+        catch (NotFoundException ex) { throw new UnauthorizedException("인증되지 않은 사용자입니다."); }
+        if (member.getAuthVersion() != claims.authVersion() || !Instant.now().isBefore(claims.expiresAt())) {
+            throw new UnauthorizedException("폐기되었거나 만료된 인증입니다.");
+        }
+        return member;
+    }
 
     public static Member lock(EntityManager em, Long id) {
         if (id == null) {

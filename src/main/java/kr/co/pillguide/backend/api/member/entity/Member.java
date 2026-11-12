@@ -58,6 +58,14 @@ public class Member extends BaseTimeEntity {
     @Column(name = "fcm_token", length = 2048, unique = true)
     private String fcmToken;
 
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    private long authVersion;
+
+    public void revokeAuthentication() {
+        this.authVersion = Math.incrementExact(this.authVersion);
+        clearFcmToken();
+    }
+
     public void updateFcmToken(String fcmToken) {
         this.fcmToken = fcmToken;
     }
@@ -113,5 +121,12 @@ public class Member extends BaseTimeEntity {
     }
     public void updateEmail(String email) {
         this.email = email;
+    }
+
+    public void updateProfile(String name, Gender gender, LocalDate birthDate, String email) {
+        if (name != null) this.name = name;
+        if (gender != null) this.gender = gender;
+        if (birthDate != null) this.birthDate = birthDate;
+        if (email != null) this.email = email;
     }
 }
