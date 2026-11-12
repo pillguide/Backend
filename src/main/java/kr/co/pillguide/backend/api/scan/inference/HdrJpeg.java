@@ -80,7 +80,7 @@ final class HdrJpeg {
             // Decode UTF-8 only; do not allow a UTF-16 document to bypass the declaration guard.
             String xml = StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(bytes, start, segment.end - start)).toString();
             String upper = xml.toUpperCase(java.util.Locale.ROOT);
-            if (upper.contains("<!DOCTYPE") || upper.contains("<!ENTITY")) return false;
+            if (xml.indexOf('\0') >= 0 || upper.contains("<!DOCTYPE") || upper.contains("<!ENTITY")) return false;
             var factory = DocumentBuilderFactory.newInstance();
             factory.setNamespaceAware(true);
             factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
@@ -136,6 +136,7 @@ final class HdrJpeg {
             require(marker != 0 && marker != 0xd8 && !(marker >= 0xd0 && marker <= 0xd7) && pos + 2 <= end);
             int length = ((bytes[pos] & 255) << 8) | (bytes[pos + 1] & 255);
             require(length >= 2 && pos + (long) length <= end);
+            require(result.size() < 4096);
             result.add(new Segment(marker, pos + 2, pos + length));
             pos += length;
             if (marker == 0xda) {
