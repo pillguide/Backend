@@ -20,6 +20,54 @@ class PhotoValidatorTest {
     private final PhotoValidator validator = new PhotoValidator();
 
     @Test
+    void sharedHdrStructureCasesRejectMalformedAndUnrelatedMultiImages() throws Exception {
+        try (var cases = getClass().getResourceAsStream("/images/cases.tsv")) {
+            for (String line : new String(cases.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).lines().toList()) {
+                String[] parts = line.split("\t");
+                byte[] data;
+                try (var resource = getClass().getResourceAsStream("/images/" + parts[0] + ".b64")) {
+                    data = java.util.Base64.getMimeDecoder().decode(resource.readAllBytes());
+                }
+                if (parts[1].equals("415")) {
+                    assertThatThrownBy(() -> validator.validate(file("image/jpeg", data)))
+                            .as(parts[0]).isInstanceOf(ScanException.class)
+                            .satisfies(e -> assertThat(((ScanException) e).status()).isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE));
+                } else {
+                    PhotoInput input = validator.validate(file("image/jpeg", data));
+                    assertThat(input.width()).as(parts[0]).isEqualTo(24);
+                    assertThat(input.height()).as(parts[0]).isEqualTo(32);
+                }
+            }
+        }
+    }
+
+    @Test
+    void allStandardPhoneExifOrientationsAgreeForJpegAndPng() throws Exception {
+        for (int orientation = 1; orientation <= 8; orientation++) {
+            byte[][] images = {jpegWithOrientation(image("jpeg", 32, 24), orientation),
+                    insertPngChunk(image("png", 32, 24), "eXIf", tiffOrientation(orientation))};
+            for (int i = 0; i < images.length; i++) {
+                PhotoInput input = validator.validate(file(i == 0 ? "image/jpeg" : "image/png", images[i]));
+                assertThat(input.width()).isEqualTo(orientation >= 5 ? 24 : 32);
+                assertThat(input.height()).isEqualTo(orientation >= 5 ? 32 : 24);
+            }
+        }
+    }
+
+    @Test
+    void acceptsHdrAuxiliaryJpegAndPreservesOriginalHashAndPrimaryOrientation() throws Exception {
+        byte[] jpeg;
+        try (var resource = getClass().getResourceAsStream("/images/apple-hdr.jpg.b64")) {
+            jpeg = java.util.Base64.getMimeDecoder().decode(resource.readAllBytes());
+        }
+        PhotoInput input = validator.validate(file("image/jpeg", jpeg));
+        assertThat(input.width()).isEqualTo(24);
+        assertThat(input.height()).isEqualTo(32);
+        assertThat(input.bytes()).isEqualTo(jpeg);
+        assertThat(input.sha256()).isEqualTo(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(jpeg)));
+    }
+
+    @Test
     void acceptsPngInMemoryAndHashesOriginalBytes() throws Exception {
         byte[] png = image("png", 3, 2);
         PhotoInput input = validator.validate(file("image/png", png));
