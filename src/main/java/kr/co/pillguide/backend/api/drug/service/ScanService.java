@@ -7,6 +7,7 @@ import kr.co.pillguide.backend.api.drug.dto.ScanDrugSummaryResponse;
 import kr.co.pillguide.backend.api.drug.dto.ScanSessionDetailResponse;
 import kr.co.pillguide.backend.api.drug.dto.ScanSessionSummaryResponse;
 import kr.co.pillguide.backend.api.drug.entity.Drug;
+import kr.co.pillguide.backend.api.drug.image.RepresentativeImageService;
 import kr.co.pillguide.backend.api.drug.entity.DrugInfo;
 import kr.co.pillguide.backend.api.drug.entity.ScanDrug;
 import kr.co.pillguide.backend.api.drug.entity.ScanSession;
@@ -26,6 +27,7 @@ import java.util.List;
 public class ScanService {
     private final ScanSessionRepository sessions;
     private final ObjectMapper mapper;
+    private final RepresentativeImageService images;
 
     @Transactional(readOnly = true)
     public List<ScanSessionSummaryResponse> getScanSessions(Long memberId) {
@@ -47,20 +49,23 @@ public class ScanService {
                 false, session.getRequestId(),
                 new ScanSessionDetailResponse.ImageSize(session.getImageWidth(), session.getImageHeight()),
                 session.getModelSha256(), session.getMappingSha256(), session.getReferenceVersion(),
-                combination(session.getInteractionSnapshot()), false, "NOT_READY");
+                combination(session.getInteractionSnapshot()), false,
+                !drugs.isEmpty() && drugs.stream().allMatch(d -> "READY".equals(d.representativeImageStatus()))
+                        ? "READY" : "NOT_READY");
     }
 
     private ScanDrugSummaryResponse summary(ScanDrug detection) {
         Drug drug = detection.getDrug();
+        var image = images.resolve(drug);
         if (detection.getDetectionIndex() == null) {
-            return new ScanDrugSummaryResponse(drug.getDrugId(), drug.getName(), drug.getCode(), drug.getImageUrl());
+            return new ScanDrugSummaryResponse(drug.getDrugId(), drug.getName(), drug.getCode(), image.url());
         }
-        return new ScanDrugSummaryResponse(drug.getDrugId(), detection.getNameSnapshot(), drug.getCode(), null,
+        return new ScanDrugSummaryResponse(drug.getDrugId(), detection.getNameSnapshot(), drug.getCode(), image.url(),
                 detection.getId(), detection.getDetectionIndex(), detection.getConfidence(),
                 List.of(detection.getBboxX1(), detection.getBboxY1(),
                         detection.getBboxX2(), detection.getBboxY2()),
                 detection.getRecognitionMayBeDegraded(), detection.getInfoStatusSnapshot(),
-                detection.getAuthorizationStatusSnapshot(), "NOT_READY");
+                detection.getAuthorizationStatusSnapshot(), image.status());
     }
 
     private ReferenceSnapshot.Combination combination(String json) {
@@ -75,11 +80,12 @@ public class ScanService {
                 .filter(candidate -> candidate.getDrugId().equals(drugId))
                 .findFirst().orElseThrow(() -> new NotFoundException(ErrorStatus.NOT_FOUND_DRUG.getMessage()));
         DrugInfo info = drug.getDrugInfo();
+        var image = images.resolve(drug);
         return new ScanDrugDetailResponse(drug.getDrugId(), drug.getName(), drug.getCode(),
-                session.isLegacy() ? drug.getImageUrl() : null,
+                image.url(),
                 info == null ? null : info.getEffect(), info == null ? null : info.getDosageMethod(),
                 info == null ? null : info.getStorageMethod(), info == null ? null : info.getSideEffects(),
-                session.isLegacy() ? null : "NOT_READY", DrugReferenceInfo.from(drug));
+                image.status(), DrugReferenceInfo.from(drug, image));
     }
 
     private ScanSession getMemberSession(Long memberId, Long sessionId) {

@@ -2,6 +2,7 @@ package kr.co.pillguide.backend.api.mydrug.service;
 
 import jakarta.persistence.EntityManager;
 import kr.co.pillguide.backend.api.drug.entity.Drug;
+import kr.co.pillguide.backend.api.drug.image.RepresentativeImageService;
 import kr.co.pillguide.backend.api.drug.service.DrugSearchService;
 import kr.co.pillguide.backend.api.member.entity.Member;
 import kr.co.pillguide.backend.api.member.service.MemberLocks;
@@ -38,6 +39,7 @@ public class MyDrugService {
     private final MemberDrugRepository relations;
     private final ScanSelectionReader selections;
     private final DrugSearchService drugDetails;
+    private final RepresentativeImageService images;
 
     @Transactional
     public AddOutcome add(JwtService.TokenClaims claims, AddMyDrugsRequest request) {
@@ -60,7 +62,8 @@ public class MyDrugService {
             selected.put(drugId, relation);
         }
         if (!created.isEmpty()) relations.saveAllAndFlush(created);
-        return new AddOutcome(!created.isEmpty(), selected.values().stream().map(MyDrugItemResponse::from).toList());
+        return new AddOutcome(!created.isEmpty(), selected.values().stream()
+                .map(relation -> MyDrugItemResponse.from(relation, images.resolve(relation.getDrug()))).toList());
     }
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
@@ -69,7 +72,7 @@ public class MyDrugService {
             throw new BadRequestException("페이지는 0 이상, 조회 개수는 1~100이어야 합니다.");
         }
         return MyDrugPageResponse.from(relations.findAllByMember_IdOrderByFirstRegisteredAtDescIdDesc(
-                memberId, PageRequest.of(page, size)));
+                memberId, PageRequest.of(page, size)), images::resolve);
     }
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
