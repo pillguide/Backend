@@ -61,8 +61,23 @@ public final class PhotoValidator {
                 if ((long) rawWidth * rawHeight > MAX_PIXELS) {
                     throw error(HttpStatus.PAYLOAD_TOO_LARGE, "사진 픽셀 제한을 초과했습니다.");
                 }
-                if (reader.getNumImages(true) > 1) {
-                    throw error(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "움직이는 사진은 사용할 수 없습니다.");
+                int images = reader.getNumImages(true);
+                if (images > 1 || (jpeg && HdrJpeg.hasMpIndex(bytes))) {
+                    if (!jpeg || images != 2) throw error(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "움직이는 사진은 사용할 수 없습니다.");
+                    HdrJpeg.validate(bytes);
+                    int auxiliaryWidth = reader.getWidth(1), auxiliaryHeight = reader.getHeight(1);
+                    if ((long) auxiliaryWidth * auxiliaryHeight > MAX_PIXELS) {
+                        throw error(HttpStatus.PAYLOAD_TOO_LARGE, "사진 픽셀 제한을 초과했습니다.");
+                    }
+                    if (auxiliaryWidth <= 0 || auxiliaryHeight <= 0
+                            || auxiliaryWidth > rawWidth || auxiliaryHeight > rawHeight) {
+                        throw error(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "손상된 HDR 사진입니다.");
+                    }
+                    var auxiliary = reader.read(1);
+                    if (auxiliary == null || auxiliary.getRaster().getNumBands() != 1) {
+                        throw error(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "손상된 HDR 사진입니다.");
+                    }
+                    auxiliary.flush();
                 }
                 // Decode only after the pixel cap so damaged compressed data is rejected without unbounded allocation.
                 if (reader.read(0) == null) throw error(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "손상된 사진입니다.");
