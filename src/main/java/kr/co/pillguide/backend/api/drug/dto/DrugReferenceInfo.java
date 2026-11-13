@@ -2,6 +2,7 @@ package kr.co.pillguide.backend.api.drug.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import kr.co.pillguide.backend.api.drug.entity.Drug;
+import kr.co.pillguide.backend.api.drug.image.RepresentativeImage;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -20,10 +21,10 @@ public record DrugReferenceInfo(
         LocalDateTime sourceFetchedAt,
         String representativeImageStatus
 ) {
-    public static DrugReferenceInfo from(Drug drug) {
+    public static DrugReferenceInfo from(Drug drug, RepresentativeImage image) {
         return new DrugReferenceInfo(drug.getCode(), drug.getModelName(), drug.getClassificationCode(),
                 drug.getClassificationName(), drug.getIngredientDisplay(), drug.getInfoStatus(),
                 drug.getAuthorizationStatus(), drug.getSourceAsOf(),
-                drug.getDrugInfo() == null ? null : drug.getDrugInfo().getSourceFetchedAt(), "NOT_READY");
+                drug.getDrugInfo() == null ? null : drug.getDrugInfo().getSourceFetchedAt(), image.status());
     }
 }
