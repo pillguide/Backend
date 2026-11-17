@@ -9,11 +9,13 @@ import java.time.LocalDateTime;
 public record MyDrugItemResponse(Long memberDrugId, LocalDateTime firstRegisteredAt,
                                  Long drugId, String name, String code, String imageUrl,
                                  String infoStatus, String authorizationStatus,
-                                 LocalDate sourceAsOf, String representativeImageStatus) {
+                                 LocalDate sourceAsOf, String representativeImageStatus,
+                                 String ingredientDisplay, String classificationName) {
     public static MyDrugItemResponse from(MemberDrug relation, RepresentativeImage image) {
         var drug = relation.getDrug();
         return new MyDrugItemResponse(relation.getId(), relation.getFirstRegisteredAt(),
                 drug.getDrugId(), drug.getName(), drug.getCode(), image.url(),
-                drug.getInfoStatus(), drug.getAuthorizationStatus(), drug.getSourceAsOf(), image.status());
+                drug.getInfoStatus(), drug.getAuthorizationStatus(), drug.getSourceAsOf(), image.status(),
+                drug.getIngredientDisplay(), drug.getClassificationName());
     }
 }
