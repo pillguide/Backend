@@ -121,6 +121,8 @@ class MyDrugHttpTest {
         assertEquals(1, list.path("items").size());
         assertEquals(relationId, list.path("items").get(0).path("memberDrugId").asLong());
         assertEquals("Current A", list.path("items").get(0).path("name").asText());
+        assertEquals("Ingredient", list.path("items").get(0).path("ingredientDisplay").asText());
+        assertEquals("Category", list.path("items").get(0).path("classificationName").asText());
         assertEquals("NOT_READY", list.path("items").get(0).path("representativeImageStatus").asText());
 
         JsonNode detail = body(mvc.perform(get("/api/v1/my-drugs/{id}", relationId)
