@@ -67,6 +67,16 @@ class AiClientTest {
     }
 
     @Test
+    void resolvesOnlyTheVerifiedTylenolTabletModelIdentityToItsCurrentReference() {
+        response = exchange -> send(exchange, 200, success("[" + prediction(1, 17, "199303108", "0.95", "[0.1,0.2,0.3,0.4]") + "]"));
+        assertThat(client(2000).predict(input()).predictions()).singleElement()
+                .extracting(AiPredictionResult.Prediction::itemSeq).isEqualTo("202106092");
+        response = exchange -> send(exchange, 200, success("[" + prediction(1, 17, "202201300", "0.95", "[0.1,0.2,0.3,0.4]") + "]"));
+        assertStatus(() -> client(2000).predict(input()), HttpStatus.BAD_GATEWAY);
+        assertThat(catalog.supersededItemSeqs()).containsExactly("199303108");
+    }
+
+    @Test
     void acceptsEmptyPredictionButRejectsContractDrift() {
         response = exchange -> send(exchange, 200, success("[]"));
         assertThat(client(2000).predict(input()).predictions()).isEmpty();
