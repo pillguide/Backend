@@ -4,6 +4,8 @@ import kr.co.pillguide.backend.api.drug.entity.Drug;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
+import java.util.function.Function;
+import kr.co.pillguide.backend.api.drug.image.RepresentativeImage;
 
 public record DrugSearchResponse(
         List<Item> items,
@@ -14,10 +16,10 @@ public record DrugSearchResponse(
         boolean hasNext
 ) {
 
-    public static DrugSearchResponse from(Page<Drug> result) {
+    public static DrugSearchResponse from(Page<Drug> result, Function<Drug, RepresentativeImage> images) {
         return new DrugSearchResponse(
                 result.getContent().stream()
-                        .map(Item::from)
+                        .map(drug -> new Item(drug.getDrugId(), drug.getName(), images.apply(drug).url()))
                         .toList(),
                 result.getNumber(),
                 result.getSize(),

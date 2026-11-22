@@ -3,6 +3,8 @@ package kr.co.pillguide.backend.api.scan.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
 import kr.co.pillguide.backend.api.drug.entity.Drug;
+import kr.co.pillguide.backend.api.drug.image.RepresentativeImage;
+import kr.co.pillguide.backend.api.drug.image.RepresentativeImageService;
 import kr.co.pillguide.backend.api.drug.reference.ReferenceReadService;
 import kr.co.pillguide.backend.api.drug.reference.ReferenceSnapshot;
 import kr.co.pillguide.backend.api.drug.reference.SupportedDrugCatalog;
@@ -81,6 +83,7 @@ class ScanWorkflowPostgresTest {
     @MockitoBean AiClient ai;
     @MockitoBean ReferenceReadService references;
     @MockitoBean FcmService fcm;
+    @MockitoBean RepresentativeImageService images;
 
     private Member member;
     private Drug drugA;
@@ -89,6 +92,7 @@ class ScanWorkflowPostgresTest {
 
     @BeforeEach
     void setup() throws Exception {
+        when(images.resolve(any())).thenReturn(RepresentativeImage.notReady());
         member = members.saveAndFlush(Member.builder().provider("test")
                 .oauthId(UUID.randomUUID().toString()).name("Scan tester").role(Role.ROLE_USER).build());
         drugA = drug(A, "Drug A");
@@ -295,6 +299,29 @@ class ScanWorkflowPostgresTest {
                 .oauthId(UUID.randomUUID().toString()).name("Other").role(Role.ROLE_USER).build());
         assertThrows(NotFoundException.class, () -> scans.getScanSession(other.getId(), result.sessionId()));
         assertThrows(NotFoundException.class, () -> scans.getScanDrug(other.getId(), result.sessionId(), drugA.getDrugId()));
+    }
+
+    @Test
+    void currentImageUrlIsRenewedWithoutChangingHistoricalAnalysis() {
+        when(ai.predict(any())).thenReturn(predictions(A));
+        when(images.resolve(any())).thenReturn(new RepresentativeImage("https://example.test/first", "READY"));
+        var result = workflow.analyze(claims, UUID.randomUUID(), file("image-history")).result();
+        assertEquals("READY", result.imageComparisonStatus());
+        assertEquals("https://example.test/first", result.drugs().getFirst().imageUrl());
+        when(images.resolve(any())).thenReturn(new RepresentativeImage("https://example.test/renewed", "READY"));
+        var history = scans.getScanSession(member.getId(), result.sessionId());
+        assertEquals("https://example.test/renewed", history.drugs().getFirst().imageUrl());
+        assertEquals(result.drugs().getFirst().detectionId(), history.drugs().getFirst().detectionId());
+        assertEquals(result.drugs().getFirst().bboxXyxy(), history.drugs().getFirst().bboxXyxy());
+        assertEquals(result.combination(), history.combination());
+        assertEquals(result.referenceVersion(), history.referenceVersion());
+        assertFalse(history.userImageAvailable());
+        var detail = scans.getScanDrug(member.getId(), result.sessionId(), drugA.getDrugId());
+        assertEquals("READY", detail.reference().representativeImageStatus());
+        assertEquals("https://example.test/renewed", detail.imageUrl());
+        String stored = jdbc.queryForObject("select interaction_snapshot from scan_session where id = ?", String.class, result.sessionId());
+        assertFalse(stored.contains("example.test"));
+        assertNull(drugs.findByCode(A).orElseThrow().getImageUrl());
     }
 
     private Object outcomeOrError(UUID requestId, MockMultipartFile file) {
