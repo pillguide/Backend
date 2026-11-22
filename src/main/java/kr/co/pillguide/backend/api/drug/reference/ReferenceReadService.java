@@ -59,7 +59,11 @@ public class ReferenceReadService {
                     drug.getInfoStatus(), drug.getAuthorizationStatus()));
         }
         if (!selected.keySet().equals(itemSeqs)) throw corrupt();
-        List<DrugInteraction> rules = interactions.findAll();
+        // A rolling deployment can stage references for a newer model catalog.
+        List<DrugInteraction> rules = interactions.findAll().stream()
+                .filter(rule -> catalog.byItemSeq(rule.getLowDrug().getCode()).isPresent()
+                        && catalog.byItemSeq(rule.getHighDrug().getCode()).isPresent())
+                .toList();
         if (rules.size() != ApprovedInteractionPairs.ALL.size()) throw corrupt();
         Set<String> seen = new HashSet<>();
         List<Match> matches = new ArrayList<>();
