@@ -64,7 +64,7 @@ public class ReferencePublisher {
         }
         drugs.saveAllAndFlush(byCode.values());
 
-        // The approved four pairs are the complete current rule set.
+        // The approved pairs are the complete current rule set.
         interactions.deleteAllInBatch();
         for (ReferenceBatch.InteractionReference row : batch.interactions()) {
             Drug first = byCode.get(row.firstItemSeq());

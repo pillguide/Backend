@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class SupportedDrugCatalogTest {
     @Test
-    void catalogContains150StableModelIdentitiesAndAllFourReviewedPairs() {
+    void catalogContains150StableModelIdentitiesAndAllReviewedPairs() {
         var catalog = new SupportedDrugCatalog();
         assertEquals(150, catalog.all().size());
         assertEquals("71569e7f4d277b5c6e69930086db7d52920a1c12dae3325a9cbc2234829e8bce", catalog.mappingSha256());
@@ -19,7 +19,10 @@ class SupportedDrugCatalogTest {
             assertEquals(drug, catalog.byItemSeq(drug.itemSeq()).orElseThrow());
             assertEquals(drug, catalog.byClassId(drug.classId()).orElseThrow());
         }
-        assertEquals(4, ApprovedInteractionPairs.ALL.size());
+        assertEquals(5, ApprovedInteractionPairs.ALL.size());
+        var erTablet = catalog.byClassId(102).orElseThrow();
+        assertEquals("201006967", erTablet.modelItemSeq());
+        assertEquals("202201173", erTablet.itemSeq());
         for (var pair : ApprovedInteractionPairs.ALL) {
             assertTrue(catalog.byItemSeq(pair.firstItemSeq()).isPresent());
             assertTrue(catalog.byItemSeq(pair.secondItemSeq()).isPresent());

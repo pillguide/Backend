@@ -21,14 +21,14 @@ class ReferenceCollectorTest {
     private final SupportedDrugCatalog catalog = new SupportedDrugCatalog();
 
     @Test
-    void completeBatchKeepsModelIdentitySelectedFieldsAndFourReviewedPairs() throws Exception {
+    void completeBatchKeepsModelIdentitySelectedFieldsAndReviewedPairs() throws Exception {
         Fixture fixture = new Fixture();
         AtomicInteger attempts = new AtomicInteger();
         ReferenceBatch batch = fixture.collect(attempts::incrementAndGet);
 
         assertEquals(751, attempts.get());
         assertEquals(150, batch.drugs().size());
-        assertEquals(4, batch.interactions().size());
+        assertEquals(5, batch.interactions().size());
         assertEquals(catalog.mappingSha256(), fixture.catalog.mappingSha256());
         assertEquals("M203364, M250460", batch.drugs().stream()
                 .filter(d -> d.itemSeq().equals("200811061")).findFirst().orElseThrow().ingredientDisplay());
@@ -44,6 +44,10 @@ class ReferenceCollectorTest {
         }
         JsonNode evidence = mapper.readTree(batch.interactions().get(2).evidenceJson());
         assertEquals(2, evidence.size());
+        var tramadol = batch.interactions().stream().filter(rule -> rule.secondItemSeq().equals("202201173")).findFirst().orElseThrow();
+        assertEquals("201309347", tramadol.firstItemSeq());
+        assertEquals("고혈압위기, 세로토닌증후군 발생 위험 증가", tramadol.officialReason());
+        assertEquals(2, mapper.readTree(tramadol.evidenceJson()).size());
         assertTrue(evidence.toString().contains("\"PROHBT_CONTENT\":null"));
     }
 
@@ -93,7 +97,7 @@ class ReferenceCollectorTest {
     void absentSecondaryIngredientLabelsKeepExactItemSequenceLink() {
         Fixture fixture = new Fixture();
         fixture.missingIngredientLabels = true;
-        assertEquals(4, fixture.collect(() -> { }).interactions().size());
+        assertEquals(5, fixture.collect(() -> { }).interactions().size());
     }
 
     @Test
@@ -184,6 +188,7 @@ class ReferenceCollectorTest {
                         case "201401986" -> "M230909";
                         case "201606824" -> "M091703";
                         case "201309347" -> "M257939";
+                        case "202201173" -> "M222893";
                         default -> "M000001";
                     };
                     result.add(ingredient(seq, code));
@@ -199,6 +204,8 @@ class ReferenceCollectorTest {
                     ObjectNode noReason = direct(seq, "201606824", null);
                     result.add(noReason);
                 }
+                if (seq.equals("201309347")) result.add(direct(seq, "202201173", "고혈압위기, 세로토닌증후군 발생 위험 증가"));
+                if (seq.equals("202201173")) result.add(direct(seq, "201309347", "고혈압위기, 세로토닌증후군 발생 위험 증가"));
                 if (extraDirect && seq.equals("197500541")) {
                     result.add(direct(seq, "201309347", "new pair"));
                 }
@@ -225,6 +232,16 @@ class ReferenceCollectorTest {
                     "TYPE_NAME", "병용금기", "TYPE_CODE", "A", "DUR_SEQ", "1",
                     "MIX", "단일", "MIXTURE_MIX", "단일"));
             switch (other) {
+                case "202201173" -> {
+                    row.put("INGR_CODE", "D000698"); row.put("MIXTURE_INGR_CODE", "D000773");
+                    row.put("MAIN_INGR", "[M257939]라사길린메실산염");
+                    row.put("MIXTURE_MAIN_INGR", "[M040353]아세트아미노펜/[M222893]트라마돌염산염");
+                }
+                case "201309347" -> {
+                    row.put("INGR_CODE", "D000773"); row.put("MIXTURE_INGR_CODE", "D000698");
+                    row.put("MAIN_INGR", "[M040353]아세트아미노펜/[M222893]트라마돌염산염");
+                    row.put("MIXTURE_MAIN_INGR", "[M257939]라사길린메실산염");
+                }
                 case "200001783" -> {
                     row.put("INGR_CODE", "D000731"); row.put("MIXTURE_INGR_CODE", "D000565");
                     row.put("MAIN_INGR", "[M099796]스피로노락톤");
