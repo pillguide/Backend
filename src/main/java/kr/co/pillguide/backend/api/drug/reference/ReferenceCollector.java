@@ -229,7 +229,7 @@ public class ReferenceCollector {
                 direct.computeIfAbsent(pair, ignored -> new ArrayList<>()).add(evidence);
             }
         }
-        List<ReferenceBatch.InteractionReference> result = new ArrayList<>(4);
+        List<ReferenceBatch.InteractionReference> result = new ArrayList<>(ApprovedInteractionPairs.ALL.size());
         for (ApprovedInteractionPairs.Pair pair : ApprovedInteractionPairs.ALL) {
             String key = pairKey(pair.firstItemSeq(), pair.secondItemSeq());
             List<ObjectNode> evidence;
@@ -269,6 +269,10 @@ public class ReferenceCollector {
             case "199906953|201606824" -> {
                 firstDur = "D000373"; secondDur = "D000582";
                 firstM = "M223198"; secondM = "M091703";
+            }
+            case "201309347|202201173" -> {
+                firstDur = "D000698"; secondDur = "D000773";
+                firstM = "M257939"; secondM = "M222893";
             }
             default -> throw invalid("UNREVIEWED_PAIR", pair);
         }
@@ -338,6 +342,7 @@ public class ReferenceCollector {
             case "199906953|201401986" -> "실로도신의 혈중농도 증가";
             case "199906953|201606824" -> "콜키신에 대한 노출 증가 가능";
             case "200811061|201309347" -> "고혈압, 빈맥 유발";
+            case "201309347|202201173" -> "고혈압위기, 세로토닌증후군 발생 위험 증가";
             default -> throw invalid("UNREVIEWED_PAIR", key);
         };
         Set<String> reasons = evidence.stream()
@@ -356,6 +361,7 @@ public class ReferenceCollector {
             case "199906953|201401986" -> "두 약을 함께 복용하면 실로도신의 혈중농도가 증가할 수 있어 병용금기입니다.";
             case "199906953|201606824" -> "두 약을 함께 복용하면 콜키신 노출이 증가할 수 있어 병용금기입니다.";
             case "200811061|201309347" -> "두 약의 성분 조합은 고혈압이나 빈맥을 유발할 수 있어 병용금기입니다.";
+            case "201309347|202201173" -> "두 약을 함께 복용하면 고혈압 위기와 세로토닌 증후군 발생 위험이 증가해 병용금기입니다.";
             default -> throw invalid("UNREVIEWED_PAIR", pair.firstItemSeq());
         };
     }

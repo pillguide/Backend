@@ -61,7 +61,7 @@ class ReferencePublisherPostgresTest {
 
         assertThat(catalog.all().stream().filter(model -> drugs.findByCode(model.itemSeq()).isPresent()).count())
                 .isEqualTo(150L);
-        assertThat(jdbc.queryForObject("select count(*) from drug_interaction", Long.class)).isEqualTo(4L);
+        assertThat(jdbc.queryForObject("select count(*) from drug_interaction", Long.class)).isEqualTo((long) ApprovedInteractionPairs.ALL.size());
         assertThat(jdbc.queryForObject("select drug_id from drug where code = ?", Long.class, firstCode)).isEqualTo(drugId);
         assertThat(jdbc.queryForObject("select info_id from drug_info where drug_id = ?", Long.class, drugId)).isEqualTo(infoId);
         assertThat(jdbc.queryForObject("select effect from drug_info where drug_id = ?", String.class, drugId))
@@ -69,7 +69,7 @@ class ReferencePublisherPostgresTest {
         assertThat(jdbc.queryForObject("select count(*) from drug where drug_id = ?", Long.class, unrelated.getDrugId()))
                 .isEqualTo(1L);
         assertThat(jdbc.queryForObject("select count(*) from drug_interaction where reference_version = 'version-1'", Long.class))
-                .isEqualTo(4L);
+                .isEqualTo((long) ApprovedInteractionPairs.ALL.size());
     }
 
     @Test
@@ -85,9 +85,9 @@ class ReferencePublisherPostgresTest {
                 .isEqualTo(priorName);
         assertThat(jdbc.queryForObject("select effect from drug_info i join drug d on d.drug_id = i.drug_id where d.code = ?",
                 String.class, firstCode)).isEqualTo("effect last-good");
-        assertThat(jdbc.queryForObject("select count(*) from drug_interaction", Long.class)).isEqualTo(4L);
+        assertThat(jdbc.queryForObject("select count(*) from drug_interaction", Long.class)).isEqualTo((long) ApprovedInteractionPairs.ALL.size());
         assertThat(jdbc.queryForObject("select count(*) from drug_interaction where reference_version = 'last-good'", Long.class))
-                .isEqualTo(4L);
+                .isEqualTo((long) ApprovedInteractionPairs.ALL.size());
     }
 
     @Test
