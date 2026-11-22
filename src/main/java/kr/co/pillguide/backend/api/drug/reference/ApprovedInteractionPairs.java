@@ -10,7 +10,8 @@ public final class ApprovedInteractionPairs {
             new Pair("197500541", "200001783", EvidenceKind.DIRECT_ITEM),
             new Pair("199906953", "201401986", EvidenceKind.DIRECT_ITEM),
             new Pair("199906953", "201606824", EvidenceKind.DIRECT_ITEM),
-            new Pair("200811061", "201309347", EvidenceKind.INGREDIENT_LINK));
+            new Pair("200811061", "201309347", EvidenceKind.INGREDIENT_LINK),
+            new Pair("201309347", "202201173", EvidenceKind.DIRECT_ITEM));
 
     private ApprovedInteractionPairs() { }
 }

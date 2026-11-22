@@ -76,7 +76,7 @@ class ReferenceReadPostgresTest {
     }
 
     @Test
-    void allFourReviewedPairsMatchInEitherOrderAndUnreviewedPairsStayUnconfirmed() {
+    void allReviewedPairsMatchInEitherOrderAndUnreviewedPairsStayUnconfirmed() {
         publish("rules", false);
         for (var approved : ApprovedInteractionPairs.ALL) {
             String first = approved.firstItemSeq();
