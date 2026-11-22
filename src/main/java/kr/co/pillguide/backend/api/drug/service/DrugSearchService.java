@@ -3,6 +3,7 @@ package kr.co.pillguide.backend.api.drug.service;
 import kr.co.pillguide.backend.api.drug.dto.DrugDetailResponse;
 import kr.co.pillguide.backend.api.drug.dto.DrugSearchResponse;
 import kr.co.pillguide.backend.api.drug.entity.Drug;
+import kr.co.pillguide.backend.api.drug.image.RepresentativeImageService;
 import kr.co.pillguide.backend.api.drug.reference.SupportedDrugCatalog;
 import kr.co.pillguide.backend.api.drug.repository.DrugRepository;
 import kr.co.pillguide.backend.common.exception.BadRequestException;
@@ -21,6 +22,7 @@ public class DrugSearchService {
 
     private final DrugRepository drugRepository;
     private final SupportedDrugCatalog catalog;
+    private final RepresentativeImageService images;
 
     public DrugSearchResponse search(
             String keyword,
@@ -60,7 +62,7 @@ public class DrugSearchService {
                 : drugRepository.findByNameContainingIgnoreCaseAndCodeNotInOrderByNameAscDrugIdAsc(
                         normalizedKeyword, superseded, pageable);
 
-        return DrugSearchResponse.from(result);
+        return DrugSearchResponse.from(result, images::resolve);
     }
 
     public DrugDetailResponse getDetail(Long drugId) {
@@ -75,6 +77,6 @@ public class DrugSearchService {
                         "해당 약 정보를 찾을 수 없습니다."
                 ));
 
-        return DrugDetailResponse.from(drug);
+        return DrugDetailResponse.from(drug, images.resolve(drug));
     }
 }
