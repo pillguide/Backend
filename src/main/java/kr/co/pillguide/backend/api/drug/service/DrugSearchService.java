@@ -4,6 +4,7 @@ import kr.co.pillguide.backend.api.drug.dto.DrugDetailResponse;
 import kr.co.pillguide.backend.api.drug.dto.DrugSearchResponse;
 import kr.co.pillguide.backend.api.drug.entity.Drug;
 import kr.co.pillguide.backend.api.drug.image.RepresentativeImageService;
+import kr.co.pillguide.backend.api.drug.reference.SupportedDrugCatalog;
 import kr.co.pillguide.backend.api.drug.repository.DrugRepository;
 import kr.co.pillguide.backend.common.exception.BadRequestException;
 import kr.co.pillguide.backend.common.exception.NotFoundException;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Isolation;
 public class DrugSearchService {
 
     private final DrugRepository drugRepository;
+    private final SupportedDrugCatalog catalog;
     private final RepresentativeImageService images;
 
     public DrugSearchResponse search(
@@ -53,11 +55,12 @@ public class DrugSearchService {
             );
         }
 
-        Page<Drug> result = drugRepository
-                .findByNameContainingIgnoreCaseOrderByNameAscDrugIdAsc(
-                        normalizedKeyword,
-                        PageRequest.of(page, size)
-                );
+        var pageable = PageRequest.of(page, size);
+        var superseded = catalog.supersededItemSeqs();
+        Page<Drug> result = superseded.isEmpty()
+                ? drugRepository.findByNameContainingIgnoreCaseOrderByNameAscDrugIdAsc(normalizedKeyword, pageable)
+                : drugRepository.findByNameContainingIgnoreCaseAndCodeNotInOrderByNameAscDrugIdAsc(
+                        normalizedKeyword, superseded, pageable);
 
         return DrugSearchResponse.from(result, images::resolve);
     }
