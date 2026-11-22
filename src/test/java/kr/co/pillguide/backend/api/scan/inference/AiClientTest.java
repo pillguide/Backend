@@ -73,7 +73,17 @@ class AiClientTest {
                 .extracting(AiPredictionResult.Prediction::itemSeq).isEqualTo("202106092");
         response = exchange -> send(exchange, 200, success("[" + prediction(1, 17, "202201300", "0.95", "[0.1,0.2,0.3,0.4]") + "]"));
         assertStatus(() -> client(2000).predict(input()), HttpStatus.BAD_GATEWAY);
-        assertThat(catalog.supersededItemSeqs()).containsExactly("199303108");
+        assertThat(catalog.supersededItemSeqs()).contains("199303108");
+    }
+
+    @Test
+    void resolvesZyprexaTabletWithoutConfusingTheStrength() {
+        response = exchange -> send(exchange, 200, success("[" + prediction(1, 44, "200209622", "0.95", "[0.1,0.2,0.3,0.4]") + "]"));
+        assertThat(client(2000).predict(input()).predictions()).singleElement()
+                .extracting(AiPredictionResult.Prediction::itemSeq).isEqualTo("202400667");
+        response = exchange -> send(exchange, 200, success("[" + prediction(1, 44, "202400668", "0.95", "[0.1,0.2,0.3,0.4]") + "]"));
+        assertStatus(() -> client(2000).predict(input()), HttpStatus.BAD_GATEWAY);
+        assertThat(catalog.supersededItemSeqs()).contains("200209622");
     }
 
     @Test
