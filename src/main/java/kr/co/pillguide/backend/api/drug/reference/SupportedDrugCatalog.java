@@ -15,7 +15,11 @@ import java.util.stream.Collectors;
 /** Model identities only. Inclusion does not imply official metadata availability. */
 @Component
 public class SupportedDrugCatalog {
-    public record SupportedDrug(Integer classId, String productCode, String itemSeq, String modelName) { }
+    public record SupportedDrug(Integer classId, String productCode, String itemSeq, String modelName, String modelItemSeq) {
+        public SupportedDrug {
+            if (modelItemSeq == null) modelItemSeq = itemSeq;
+        }
+    }
     private record Document(String sourceMappingSha256, List<SupportedDrug> drugs) { }
 
     private final String mappingSha256;
@@ -37,10 +41,12 @@ public class SupportedDrugCatalog {
             }
             var ids = new HashSet<Integer>();
             var codes = new HashSet<String>();
+            var modelCodes = new HashSet<String>();
             var products = new HashSet<String>();
             for (SupportedDrug drug : document.drugs()) {
                 if (drug == null || drug.classId() == null || drug.classId() < 0 || drug.classId() >= 150
                         || drug.itemSeq() == null || !drug.itemSeq().matches("[0-9]{9}")
+                        || !drug.modelItemSeq().matches("[0-9]{9}") || !modelCodes.add(drug.modelItemSeq())
                         || drug.productCode() == null || !drug.productCode().matches("K-[0-9]{6}")
                         || drug.modelName() == null || drug.modelName().isBlank()
                         || !ids.add(drug.classId()) || !codes.add(drug.itemSeq()) || !products.add(drug.productCode())) {
@@ -54,6 +60,11 @@ public class SupportedDrugCatalog {
         } catch (IOException e) {
             throw new IllegalStateException("Cannot read supported drug catalog", e);
         }
+    }
+
+    public List<String> supersededItemSeqs() {
+        return drugs.stream().filter(d -> !d.modelItemSeq().equals(d.itemSeq()))
+                .map(SupportedDrug::modelItemSeq).toList();
     }
 
     public String mappingSha256() { return mappingSha256; }

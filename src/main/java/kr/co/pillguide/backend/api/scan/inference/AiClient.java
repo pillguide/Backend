@@ -122,9 +122,8 @@ public final class AiClient {
                 if (!classNode.isIntegralNumber() || !classNode.canConvertToInt()) throw invalid();
                 int classId = classNode.intValue();
                 String itemSeq = text(row, "item_seq");
-                if (classId < 0 || classId >= 150 || !itemSeq.matches("[0-9]+")
-                        || catalog.byClassId(classId).isEmpty()
-                        || !catalog.byClassId(classId).orElseThrow().itemSeq().equals(itemSeq)) throw invalid();
+                var drug = catalog.byClassId(classId).orElseThrow(AiClient::invalid);
+                if (!drug.modelItemSeq().equals(itemSeq)) throw invalid();
                 double confidence = unit(row.path("confidence"));
                 JsonNode bbox = row.path("bbox_xyxy");
                 if (!bbox.isArray() || bbox.size() != 4) throw invalid();
@@ -133,7 +132,7 @@ public final class AiClient {
                 if (bounds.get(0) >= bounds.get(2) || bounds.get(1) >= bounds.get(3)) throw invalid();
                 JsonNode degraded = row.path("recognition_may_be_degraded");
                 if (!degraded.isBoolean()) throw invalid();
-                predictions.add(new AiPredictionResult.Prediction(i + 1, classId, itemSeq,
+                predictions.add(new AiPredictionResult.Prediction(i + 1, classId, drug.itemSeq(),
                         confidence, bounds, degraded.booleanValue()));
             }
             return new AiPredictionResult(width, height, modelSha, mappingSha, predictions);
