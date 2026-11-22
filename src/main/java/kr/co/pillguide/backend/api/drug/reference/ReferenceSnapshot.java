@@ -15,7 +15,7 @@ public record ReferenceSnapshot(String version, LocalDate sourceAsOf, boolean re
 
     public record Combination(int uniqueDrugCount, int pairCount, int confirmedContraindicationCount,
                                List<Match> matches,
-                               @Schema(description = "승인된 4쌍 목록에서의 비교 범위. 미일치는 안전 판정이 아님",
+                               @Schema(description = "승인된 병용금기 목록에서의 비교 범위. 미일치는 안전 판정이 아님",
                                        allowableValues = {"REVIEWED_LIST_ONLY", "REFERENCE_DATA_PARTIAL"}) String coverageStatus,
                                LocalDate sourceAsOf,
                                boolean refreshDelayed) {
