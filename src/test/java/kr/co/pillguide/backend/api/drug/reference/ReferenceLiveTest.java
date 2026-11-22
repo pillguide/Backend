@@ -38,7 +38,7 @@ class ReferenceLiveTest {
     @MockitoBean FcmService fcm;
 
     @Test
-    void freshCompleteReferenceIsPublishedWithFourReviewedPairs() throws Exception {
+    void freshCompleteReferenceIsPublishedWithReviewedPairs() throws Exception {
         assertEquals("jdbc:postgresql://127.0.0.1:55432/pillguide_test", System.getenv("PG_TEST_URL"));
         var report = new LinkedHashMap<String, Object>();
         try {
@@ -48,13 +48,13 @@ class ReferenceLiveTest {
             assertNull(state.getActiveRun());
             assertNull(state.getLastFailureCode());
             assertEquals(150, jdbc.queryForObject("select count(*) from drug where source_as_of is not null", Integer.class));
-            assertEquals(4, jdbc.queryForObject("select count(*) from drug_interaction", Integer.class));
-            assertEquals(4, jdbc.queryForObject("select count(*) from drug_interaction where reference_version = ? and source_hash = summary_source_hash",
+            assertEquals(ApprovedInteractionPairs.ALL.size(), jdbc.queryForObject("select count(*) from drug_interaction", Integer.class));
+            assertEquals(ApprovedInteractionPairs.ALL.size(), jdbc.queryForObject("select count(*) from drug_interaction where reference_version = ? and source_hash = summary_source_hash",
                     Integer.class, state.getCurrentVersion()));
             report.put("version", state.getCurrentVersion());
             report.put("sourceAsOf", state.getSourceAsOf().toString());
             report.put("products", 150);
-            report.put("pairs", 4);
+            report.put("pairs", ApprovedInteractionPairs.ALL.size());
             report.put("statusCounts", jdbc.queryForList("select info_status, authorization_status, count(*) as count from drug group by info_status, authorization_status"));
             report.put("outcome", "PASSED");
         } finally {
