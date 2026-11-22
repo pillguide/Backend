@@ -22,6 +22,9 @@ public interface DrugRepository extends JpaRepository<Drug, Long> {
             Pageable pageable
     );
 
+    Page<Drug> findByNameContainingIgnoreCaseAndCodeNotInOrderByNameAscDrugIdAsc(
+            String keyword, Collection<String> excludedCodes, Pageable pageable);
+
     // 상세 정보까지 함께 조회
     @EntityGraph(attributePaths = "drugInfo")
     Optional<Drug> findDetailByDrugId(Long drugId);
